@@ -47,9 +47,9 @@ static int ebpf_prog_load(const char *name, __u32 prog_type, const void *insns, 
 */
 import "C"
 import (
+	"errors"
+	"fmt"
 	"unsafe"
-
-	"github.com/dropbox/godropbox/errors"
 )
 
 type ProgramType int
@@ -119,7 +119,7 @@ type BaseProgram struct {
 func (prog *BaseProgram) Load() error {
 	// Sanity checks
 	if len(prog.name) >= C.BPF_OBJ_NAME_LEN {
-		return errors.Newf("Program name '%s' is too long", prog.name)
+		return errors.New(fmt.Sprintf("Program name '%s' is too long", prog.name))
 	}
 
 	// Buffer for kernel's verified debug messages
@@ -141,8 +141,9 @@ func (prog *BaseProgram) Load() error {
 		unsafe.Pointer(&logBuf[0]),
 		C.size_t(unsafe.Sizeof(logBuf))))
 	if res == -1 {
-		return errors.Newf("ebpf_prog_load() failed: %s",
-			NullTerminatedStringToString(logBuf[:]))
+		return errors.New(fmt.Sprintf("ebpf_prog_load() failed: %s",
+			NullTerminatedStringToString(logBuf[:])),
+		)
 	}
 	prog.fd = res
 

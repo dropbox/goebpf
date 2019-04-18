@@ -299,9 +299,9 @@ static struct __create_map_def* bpf_map_get_next(struct __create_map_def* curr)
 import "C"
 
 import (
+	"errors"
 	"unsafe"
 
-	"github.com/dropbox/godropbox/errors"
 	"github.com/dropbox/goebpf"
 )
 

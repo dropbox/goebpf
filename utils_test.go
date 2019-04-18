@@ -7,8 +7,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-
-	"github.com/dropbox/godropbox/errors"
 )
 
 func TestParseNumOfPossibleCpus(t *testing.T) {
@@ -46,8 +44,7 @@ func TestParseNumOfPossibleCpus(t *testing.T) {
 func TestCloseFd(t *testing.T) {
 	err := closeFd(1111) // Some non-existing fd
 	assert.Error(t, err)
-	msg := err.(errors.DropboxError).GetMessage()
-	assert.Equal(t, "close() failed: Bad file descriptor", msg)
+	assert.Equal(t, "close() failed: Bad file descriptor", err.Error())
 }
 
 func TestNullTerminatedStringToString(t *testing.T) {

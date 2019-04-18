@@ -7,12 +7,12 @@ import (
 	"bytes"
 	"debug/elf"
 	"encoding/binary"
+	"errors"
+	"fmt"
 	"io"
 	"strings"
 
 	"golang.org/x/sys/unix"
-
-	"github.com/dropbox/godropbox/errors"
 )
 
 const (
@@ -87,12 +87,12 @@ type relocationItem struct {
 func readRelocations(elfFile *elf.File, section *elf.Section) ([]relocationItem, error) {
 	symbols, err := elfFile.Symbols()
 	if err != nil {
-		return nil, errors.Wrap(err, "symbols() failed:")
+		return nil, err
 	}
 	// Read section data
 	data, err := section.Data()
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to read data from section '%s':", section.Name)
+		return nil, err
 	}
 
 	// Parse all entries
@@ -120,7 +120,7 @@ func readRelocations(elfFile *elf.File, section *elf.Section) ([]relocationItem,
 			symbolIndex = int(elf.R_SYM32(rel.Info)) - 1
 			offset = int(rel.Off)
 		default:
-			return nil, errors.Newf("Unsupported arch %v", elfFile.Class)
+			return nil, errors.New(fmt.Sprintf("Unsupported arch %v", elfFile.Class))
 		}
 		// Handle binary reader errors in one place
 		if err == io.EOF {
@@ -132,8 +132,8 @@ func readRelocations(elfFile *elf.File, section *elf.Section) ([]relocationItem,
 		}
 		// Ensure that symbol exists
 		if symbolIndex >= len(symbols) {
-			return nil, errors.Newf("Invalid RELO '%v': symbol index %v does not exist",
-				section, symbolIndex)
+			return nil, errors.New(fmt.Sprintf("Invalid RELO '%v': symbol index %v does not exist",
+				section, symbolIndex))
 		}
 		result = append(result, relocationItem{
 			offset: offset,
@@ -146,7 +146,7 @@ func loadAndCreateMaps(elfFile *elf.File) (map[string]Map, error) {
 	// Read ELF symbols
 	symbols, err := elfFile.Symbols()
 	if err != nil {
-		return nil, errors.Wrap(err, "elf.Symbols() failed:")
+		return nil, err
 	}
 
 	// Lookup for "maps" ELF section
@@ -167,7 +167,7 @@ func loadAndCreateMaps(elfFile *elf.File) (map[string]Map, error) {
 	mapsByIndex := []*EbpfMap{}
 	data, err := mapSection.Data()
 	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to read '%s' section data:", mapSection.Name)
+		return nil, err
 	}
 	for offset := 0; offset < len(data); offset += mapDefinitionSize {
 		m, err := newMapFromElfSection(data[offset:])
@@ -184,7 +184,7 @@ func loadAndCreateMaps(elfFile *elf.File) (map[string]Map, error) {
 			}
 		}
 		if m.Name == "" {
-			return nil, errors.Newf("Unable to get map name (section offset=%d)", offset)
+			return nil, errors.New(fmt.Sprintf("Unable to get map name (section offset=%d)", offset))
 		}
 		mapsByIndex = append(mapsByIndex, m)
 	}
@@ -210,7 +210,7 @@ func loadAndCreateMaps(elfFile *elf.File) (map[string]Map, error) {
 		}
 		relocations, err := readRelocations(elfFile, reloSection)
 		if err != nil {
-			return nil, errors.Wrap(err, "readRelocations() failed:")
+			return nil, err
 		}
 		// Apply each RELO entry
 		for _, relo := range relocations {
@@ -218,7 +218,7 @@ func loadAndCreateMaps(elfFile *elf.File) (map[string]Map, error) {
 			mapOffset := relo.offset % mapDefinitionSize
 			mapIndex := relo.offset / mapDefinitionSize
 			if mapIndex >= len(mapsByIndex) {
-				return nil, errors.Newf("Invalid RELO: map with index %d does not exist", mapIndex)
+				return nil, errors.New(fmt.Sprintf("Invalid RELO: map with index %d does not exist", mapIndex))
 			}
 			if mapOffset == mapDefinitionInnerMapOffset {
 				// RELO for
@@ -233,13 +233,13 @@ func loadAndCreateMaps(elfFile *elf.File) (map[string]Map, error) {
 				sec := elfFile.Sections[relo.symbol.Section]
 				sdata, err := sec.Data()
 				if err != nil {
-					return nil, errors.Newf("Unable to read '%s' section data: %v", sec.Name, err)
+					return nil, errors.New(fmt.Sprintf("Unable to read '%s' section data: %v", sec.Name, err))
 				}
 				// Section data contains null terminated string and
 				// symbol.Value holds offset in this data
 				mapsByIndex[mapIndex].PersistentPath = NullTerminatedStringToString(sdata[relo.symbol.Value:])
 			} else {
-				return nil, errors.Newf("Unknown map RELO offset %d", mapOffset)
+				return nil, errors.New(fmt.Sprintf("Unknown map RELO offset %d", mapOffset))
 			}
 		}
 	}
@@ -252,13 +252,13 @@ func loadAndCreateMaps(elfFile *elf.File) (map[string]Map, error) {
 			if innerMap, ok := result[item.InnerMapName]; ok {
 				item.InnerMapFd = innerMap.GetFd()
 			} else {
-				return nil, errors.Newf("Inner map '%s' does not exist", item.InnerMapName)
+				return nil, errors.New(fmt.Sprintf("Inner map '%s' does not exist", item.InnerMapName))
 			}
 		}
 		// Create map in kernel / add to results
 		err := item.Create()
 		if err != nil {
-			return nil, errors.Wrap(err, "map.Create() failed:")
+			return nil, err
 		}
 		result[item.Name] = item
 	}
@@ -269,7 +269,7 @@ func loadPrograms(elfFile *elf.File, maps map[string]Map) (map[string]Program, e
 	// Read ELF symbols
 	symbols, err := elfFile.Symbols()
 	if err != nil {
-		return nil, errors.Wrap(err, "elf.Symbols() failed:")
+		return nil, err
 	}
 
 	// Find license information
@@ -278,7 +278,7 @@ func loadPrograms(elfFile *elf.File, maps map[string]Map) (map[string]Program, e
 		if section.Name == LicenseSectionName {
 			data, err := section.Data()
 			if err != nil {
-				return nil, errors.Wrapf(err, "Failed to read data for section %s:", section.Name)
+				return nil, err
 			}
 			license = NullTerminatedStringToString(data)
 			break
@@ -301,7 +301,7 @@ func loadPrograms(elfFile *elf.File, maps map[string]Map) (map[string]Program, e
 		// Read section data - it contains compiled bytecode of ALL programs
 		bytecode, err := section.Data()
 		if err != nil {
-			return nil, errors.Wrapf(err, "Failed to read data for section %s:", section.Name)
+			return nil, err
 		}
 
 		// Apply all relocations
@@ -312,13 +312,13 @@ func loadPrograms(elfFile *elf.File, maps map[string]Map) (map[string]Program, e
 			}
 			relocations, err := readRelocations(elfFile, reloSection)
 			if err != nil {
-				return nil, errors.Wrap(err, "readRelocations() failed:")
+				return nil, err
 			}
 			// Apply each relocation item
 			for _, relocation := range relocations {
 				// Get index of BPF instruction, then check it
 				if relocation.offset >= len(bytecode) {
-					return nil, errors.Newf("Invalid RELO offset %d", relocation.offset)
+					return nil, errors.New(fmt.Sprintf("Invalid RELO offset %d", relocation.offset))
 				}
 				// Load BPF instruction that needs to be modified ("relocated")
 				instruction := &bpfInstruction{}
@@ -328,8 +328,8 @@ func loadPrograms(elfFile *elf.File, maps map[string]Map) (map[string]Program, e
 				}
 				// Ensure that instruction is valid
 				if instruction.code != (unix.BPF_LD | unix.BPF_IMM | bpfDw) {
-					return nil, errors.Newf("Invalid BPF instruction (at %d): %v",
-						relocation.offset, instruction)
+					return nil, errors.New(fmt.Sprintf("Invalid BPF instruction (at %d): %v",
+						relocation.offset, instruction))
 				}
 				// Patch instruction to use proper map fd
 				mapName := relocation.symbol.Name
@@ -338,7 +338,7 @@ func loadPrograms(elfFile *elf.File, maps map[string]Map) (map[string]Program, e
 					instruction.imm = uint32(bpfMap.GetFd())
 					copy(bytecode[relocation.offset:], instruction.save())
 				} else {
-					return nil, errors.Newf("map '%s' doesn't exist", mapName)
+					return nil, errors.New(fmt.Sprintf("map '%s' doesn't exist", mapName))
 				}
 			}
 		}
@@ -357,7 +357,7 @@ func loadPrograms(elfFile *elf.File, maps map[string]Map) (map[string]Program, e
 			offset := int(symbol.Value)
 			size := lastOffset - offset
 			if size/bpfInstructionLen > bpfMaxInstructions {
-				return nil, errors.Newf("eBPF program '%s' too big", symbol.Name)
+				return nil, errors.New(fmt.Sprintf("eBPF program '%s' too big", symbol.Name))
 			}
 			// Create program with type based on section name
 			result[symbol.Name] = createProgram(symbol.Name, license, bytecode[offset:offset+size])
@@ -373,20 +373,20 @@ func (s *ebpfSystem) LoadElf(fn string) error {
 	// Open/read ELF headers
 	elfFile, err := elf.Open(fn)
 	if err != nil {
-		return errors.Wrap(err, "elf.Open() failed:")
+		return err
 	}
 	defer elfFile.Close()
 
 	// Load eBPF maps
 	s.Maps, err = loadAndCreateMaps(elfFile)
 	if err != nil {
-		return errors.Wrap(err, "loadAndCreateMaps() failed:")
+		return err
 	}
 
 	// Load eBPF programs
 	s.Programs, err = loadPrograms(elfFile, s.Maps)
 	if err != nil {
-		return errors.Wrap(err, "loadPrograms() failed:")
+		return err
 	}
 
 	return nil
