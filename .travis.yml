@@ -1,0 +1,15 @@
+dist: xenial
+language: go
+
+go:
+  - "tip"
+  - "1.12"
+  - "1.10"
+  - "1.9"
+
+script:
+  # Verify for formatting issues
+  - if [ -n "$(gofmt -l .)" ]; then echo "Please fix source formatting by 'go fmt ./...'"; false; fi
+  # Run tests
+  - go test -v
+  - cd goebpf_mock && go test -v

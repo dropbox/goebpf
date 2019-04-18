@@ -132,7 +132,7 @@ func readRelocations(elfFile *elf.File, section *elf.Section) ([]relocationItem,
 		}
 		// Ensure that symbol exists
 		if symbolIndex >= len(symbols) {
-			return nil, errors.Newf("Invalid RELO '%s': symbol index %d does not exist",
+			return nil, errors.Newf("Invalid RELO '%v': symbol index %v does not exist",
 				section, symbolIndex)
 		}
 		result = append(result, relocationItem{
