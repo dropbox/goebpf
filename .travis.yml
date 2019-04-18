@@ -1,5 +1,6 @@
 dist: xenial
 language: go
+sudo: true
 
 go:
   - "tip"
@@ -7,9 +8,16 @@ go:
   - "1.10"
   - "1.9"
 
+before_install:
+  - sudo apt-get update
+  - sudo apt-get install -y clang llvm
+
 script:
   # Verify for formatting issues
   - if [ -n "$(gofmt -l .)" ]; then echo "Please fix source formatting by 'go fmt ./...'"; false; fi
-  # Run tests
+  # Run unit tests
   - go test -v
   - cd goebpf_mock && go test -v
+  # Travis does not support operations with eBPF, so, just ensure that
+  # integration test is compilable Run integration test
+  - cd ../itest && make
