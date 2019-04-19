@@ -87,12 +87,12 @@ type relocationItem struct {
 func readRelocations(elfFile *elf.File, section *elf.Section) ([]relocationItem, error) {
 	symbols, err := elfFile.Symbols()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("symbols() failed: %v", err)
 	}
 	// Read section data
 	data, err := section.Data()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to read data from section '%s': %v", section.Name, err)
 	}
 
 	// Parse all entries
@@ -146,7 +146,7 @@ func loadAndCreateMaps(elfFile *elf.File) (map[string]Map, error) {
 	// Read ELF symbols
 	symbols, err := elfFile.Symbols()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("elf.Symbols() failed: %v", err)
 	}
 
 	// Lookup for "maps" ELF section
@@ -167,7 +167,7 @@ func loadAndCreateMaps(elfFile *elf.File) (map[string]Map, error) {
 	mapsByIndex := []*EbpfMap{}
 	data, err := mapSection.Data()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to read '%s' section data: %v", mapSection.Name, err)
 	}
 	for offset := 0; offset < len(data); offset += mapDefinitionSize {
 		m, err := newMapFromElfSection(data[offset:])
@@ -210,7 +210,7 @@ func loadAndCreateMaps(elfFile *elf.File) (map[string]Map, error) {
 		}
 		relocations, err := readRelocations(elfFile, reloSection)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("readRelocations() failed: %v", err)
 		}
 		// Apply each RELO entry
 		for _, relo := range relocations {
@@ -258,7 +258,7 @@ func loadAndCreateMaps(elfFile *elf.File) (map[string]Map, error) {
 		// Create map in kernel / add to results
 		err := item.Create()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("map.Create() failed: %v", err)
 		}
 		result[item.Name] = item
 	}
@@ -269,7 +269,7 @@ func loadPrograms(elfFile *elf.File, maps map[string]Map) (map[string]Program, e
 	// Read ELF symbols
 	symbols, err := elfFile.Symbols()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("elf.Symbols() failed: %v", err)
 	}
 
 	// Find license information
@@ -278,7 +278,7 @@ func loadPrograms(elfFile *elf.File, maps map[string]Map) (map[string]Program, e
 		if section.Name == LicenseSectionName {
 			data, err := section.Data()
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("Failed to read data for section %s: %v", section.Name, err)
 			}
 			license = NullTerminatedStringToString(data)
 			break
@@ -301,7 +301,7 @@ func loadPrograms(elfFile *elf.File, maps map[string]Map) (map[string]Program, e
 		// Read section data - it contains compiled bytecode of ALL programs
 		bytecode, err := section.Data()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("Failed to read data for section %s: %v", section.Name, err)
 		}
 
 		// Apply all relocations
@@ -312,7 +312,7 @@ func loadPrograms(elfFile *elf.File, maps map[string]Map) (map[string]Program, e
 			}
 			relocations, err := readRelocations(elfFile, reloSection)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("readRelocations() failed: %v", err)
 			}
 			// Apply each relocation item
 			for _, relocation := range relocations {
@@ -380,13 +380,13 @@ func (s *ebpfSystem) LoadElf(fn string) error {
 	// Load eBPF maps
 	s.Maps, err = loadAndCreateMaps(elfFile)
 	if err != nil {
-		return err
+		return fmt.Errorf("loadAndCreateMaps() failed: %v", err)
 	}
 
 	// Load eBPF programs
 	s.Programs, err = loadPrograms(elfFile, s.Maps)
 	if err != nil {
-		return err
+		return fmt.Errorf("loadPrograms() failed: %v", err)
 	}
 
 	return nil

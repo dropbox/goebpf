@@ -8,6 +8,7 @@ import "C"
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/vishvananda/netlink"
 )
@@ -63,12 +64,12 @@ func (p *xdpProgram) Attach(ifname string) error {
 	iface, err := netlink.LinkByName(ifname)
 	if err != nil {
 		// Most likely no such interface
-		return err
+		return fmt.Errorf("LinkByName() failed: %v", err)
 	}
 
 	err = netlink.LinkSetXdpFd(iface, p.fd)
 	if err != nil {
-		return err
+		return fmt.Errorf("LinkSetXdpFd() failed: %v", err)
 	}
 	p.ifname = ifname
 
@@ -83,13 +84,13 @@ func (p *xdpProgram) Detach() error {
 	iface, err := netlink.LinkByName(p.ifname)
 	if err != nil {
 		// Most likely no such interface
-		return err
+		return fmt.Errorf("LinkByName() failed: %v", err)
 	}
 
 	// Setting eBPF program with FD -1 actually removes it from interface
 	err = netlink.LinkSetXdpFd(iface, -1)
 	if err != nil {
-		return err
+		return fmt.Errorf("LinkSetXdpFd() failed: %v", err)
 	}
 	p.ifname = ""
 
