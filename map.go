@@ -136,11 +136,11 @@ import "C"
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
+	"fmt"
 	"net"
 	"strings"
 	"unsafe"
-
-	"github.com/dropbox/godropbox/errors"
 )
 
 type MapType int
@@ -268,8 +268,7 @@ const (
 // Create EbpfMap binary data stored in ELF section
 func newMapFromElfSection(data []byte) (*EbpfMap, error) {
 	if len(data) < mapDefinitionSize {
-		return nil, errors.Newf("Invalid binary representation of BPF map (%d vs %d)",
-			len(data), mapDefinitionSize)
+		return nil, errors.New("Invalid binary representation of BPF map")
 	}
 
 	return &EbpfMap{
@@ -292,7 +291,7 @@ func NewMapFromExistingMapByFd(fd int) (*EbpfMap, error) {
 		unsafe.Pointer(&infoBuf[0]), C.__u32(len(infoBuf)),
 		unsafe.Pointer(&logBuf[0]), C.size_t(unsafe.Sizeof(logBuf)))
 	if res == -1 {
-		return nil, errors.Newf("ebpf_obj_get_info_by_fd() failed: %v",
+		return nil, fmt.Errorf("ebpf_obj_get_info_by_fd() failed: %v",
 			NullTerminatedStringToString(logBuf[:]))
 	}
 
@@ -333,7 +332,7 @@ func NewMapFromExistingMapById(id int) (*EbpfMap, error) {
 	fd := C.ebpf_map_get_fd_by_id(C.__u32(id),
 		unsafe.Pointer(&logBuf[0]), C.size_t(unsafe.Sizeof(logBuf)))
 	if fd == -1 {
-		return nil, errors.Newf("ebpf_map_get_fd_by_id() failed: %v",
+		return nil, fmt.Errorf("ebpf_map_get_fd_by_id() failed: %v",
 			NullTerminatedStringToString(logBuf[:]))
 	}
 
@@ -365,7 +364,7 @@ func (m *EbpfMap) Create() error {
 		m.Type == MapTypeArrayOfMaps || m.Type == MapTypeProgArray {
 
 		if m.KeySize > 4 {
-			return errors.Newf("Invalid map '%s' key size(%d), must be 4 bytes", m.Name, m.KeySize)
+			return fmt.Errorf("Invalid map '%s' key size(%d), must be 4 bytes", m.Name, m.KeySize)
 		}
 		// Allow to omit key size
 		if m.KeySize == 0 {
@@ -380,13 +379,13 @@ func (m *EbpfMap) Create() error {
 
 	// Perform few sanity checks
 	if len(m.Name) >= C.BPF_OBJ_NAME_LEN {
-		return errors.Newf("Map name '%s' is too long", m.Name)
+		return fmt.Errorf("Map name '%s' is too long", m.Name)
 	}
 	if m.KeySize < 1 {
-		return errors.Newf("Invalid map '%s' key size(%d)", m.Name, m.KeySize)
+		return fmt.Errorf("Invalid map '%s' key size(%d)", m.Name, m.KeySize)
 	}
 	if m.ValueSize < 1 {
-		return errors.Newf("Invalid map '%s' value size(%d)", m.Name, m.ValueSize)
+		return fmt.Errorf("Invalid map '%s' value size(%d)", m.Name, m.ValueSize)
 	}
 
 	// Per-CPU maps require extra space to store values from ALL possible CPUs
@@ -441,7 +440,7 @@ func (m *EbpfMap) Create() error {
 	))
 
 	if newFd == -1 {
-		return errors.Newf("ebpf_create_map() failed: %s",
+		return fmt.Errorf("ebpf_create_map() failed: %s",
 			NullTerminatedStringToString(logBuf[:]))
 	}
 	m.fd = newFd
@@ -458,10 +457,10 @@ func (m *EbpfMap) Create() error {
 			// Destroy just created map
 			err := m.Close()
 			if err != nil {
-				return errors.Newf("ebpf_obj_pin() to '%s' failed: %v, also close() failed: %v",
+				return fmt.Errorf("ebpf_obj_pin() to '%s' failed: %v, also close() failed: %v",
 					m.PersistentPath, NullTerminatedStringToString(logBuf[:]), err)
 			}
-			return errors.Newf("ebpf_obj_pin() to '%s' failed: %s",
+			return fmt.Errorf("ebpf_obj_pin() to '%s' failed: %s",
 				m.PersistentPath, NullTerminatedStringToString(logBuf[:]))
 		}
 	}
@@ -520,7 +519,7 @@ func (m *EbpfMap) Lookup(ikey interface{}) ([]byte, error) {
 		C.size_t(unsafe.Sizeof(logBuf))))
 
 	if res == -1 {
-		return nil, errors.Newf("ebpf_map_lookup_elem() failed: %s",
+		return nil, fmt.Errorf("ebpf_map_lookup_elem() failed: %s",
 			NullTerminatedStringToString(logBuf[:]))
 	}
 
@@ -532,7 +531,7 @@ func (m *EbpfMap) Lookup(ikey interface{}) ([]byte, error) {
 // WARNING: Does NOT work for Per-CPU maps (not an real use case?).
 func (m *EbpfMap) LookupString(ikey interface{}) (string, error) {
 	if m.isPerCpu() {
-		return "", errors.Newf("Not supported for %v", m.Type)
+		return "", fmt.Errorf("LookupString is not supported for %v", m.Type)
 	}
 	val, err := m.Lookup(ikey)
 	if err != nil {
@@ -612,7 +611,7 @@ func (m *EbpfMap) updateImpl(ikey interface{}, ivalue interface{}, op int) error
 		C.size_t(unsafe.Sizeof(logBuf))))
 
 	if res == -1 {
-		return errors.Newf("ebpf_map_update_elem() failed: %s",
+		return fmt.Errorf("ebpf_map_update_elem() failed: %s",
 			NullTerminatedStringToString(logBuf[:]))
 	}
 
@@ -653,7 +652,7 @@ func (m *EbpfMap) Delete(ikey interface{}) error {
 		C.size_t(unsafe.Sizeof(logBuf))))
 
 	if res == -1 {
-		return errors.Newf("ebpf_map_delete_elem() failed: %s",
+		return fmt.Errorf("ebpf_map_delete_elem() failed: %s",
 			NullTerminatedStringToString(logBuf[:]))
 	}
 

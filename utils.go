@@ -89,6 +89,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"strconv"
@@ -96,8 +98,6 @@ import (
 	"sync"
 	"time"
 	"unsafe"
-
-	"github.com/dropbox/godropbox/errors"
 )
 
 const (
@@ -148,7 +148,7 @@ func GetProgramInfoByFd(fd int) (*ProgramInfo, error) {
 			unsafe.Pointer(&infoBuf[0]), C.__u32(len(infoBuf)),
 			unsafe.Pointer(&logBuf[0]), C.size_t(unsafe.Sizeof(logBuf)))
 		if res == -1 {
-			return nil, errors.Newf("ebpf_obj_get_info_by_fd() failed: %v",
+			return nil, fmt.Errorf("ebpf_obj_get_info_by_fd() failed: %v",
 				NullTerminatedStringToString(logBuf[:]))
 		}
 	}
@@ -181,14 +181,14 @@ func GetProgramInfoByFd(fd int) (*ProgramInfo, error) {
 			unsafe.Pointer(&mapsArray[0]), C.__u32(len(mapsArray)),
 			unsafe.Pointer(&logBuf[0]), C.size_t(unsafe.Sizeof(logBuf)))
 		if res == -1 {
-			return nil, errors.Newf("ebpf_obj_get_info_maps() failed: %v",
+			return nil, fmt.Errorf("ebpf_obj_get_info_maps() failed: %v",
 				NullTerminatedStringToString(logBuf[:]))
 		}
 		// Create maps from IDs
 		for _, id := range mapsArray {
 			m, err := NewMapFromExistingMapById(int(id))
 			if err != nil {
-				return nil, errors.Wrap(err, "NewMapFromExistingMapById() failed:")
+				return nil, err
 			}
 			maps[m.Name] = m
 		}
@@ -220,7 +220,7 @@ func GetProgramInfoById(id int) (*ProgramInfo, error) {
 	fd := C.ebpf_prog_get_fd_by_id(C.__u32(id),
 		unsafe.Pointer(&logBuf[0]), C.size_t(unsafe.Sizeof(logBuf)))
 	if fd == -1 {
-		return nil, errors.Newf("ebpf_prog_get_fd_by_id() failed: %v",
+		return nil, fmt.Errorf("ebpf_prog_get_fd_by_id() failed: %v",
 			NullTerminatedStringToString(logBuf[:]))
 	}
 
@@ -237,7 +237,7 @@ func closeFd(fd int) error {
 		C.size_t(unsafe.Sizeof(logBuf))))
 
 	if res == -1 {
-		return errors.Newf("close() failed: %s",
+		return fmt.Errorf("close() failed: %s",
 			NullTerminatedStringToString(logBuf[:]))
 	}
 	return nil
@@ -296,7 +296,7 @@ func ParseFlexibleIntegerLittleEndian(rawVal []byte) uint64 {
 
 // Helper to covert key/value to bytes
 func KeyValueToBytes(ival interface{}, size int) ([]byte, error) {
-	overflow := errors.Newf("Key/Value is too long (must be at most %d)", size)
+	overflow := fmt.Errorf("Key/Value is too long (must be at most %d)", size)
 
 	var res = make([]byte, size)
 
@@ -360,7 +360,7 @@ func KeyValueToBytes(ival interface{}, size int) ([]byte, error) {
 		copy(res[4:], val.IP)
 		return res, nil
 	default:
-		return nil, errors.Newf("Type %T is not supported yet", val)
+		return nil, fmt.Errorf("Type %T is not supported yet", val)
 	}
 
 	return res, nil
