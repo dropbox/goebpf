@@ -16,8 +16,11 @@ script:
   # Verify for formatting issues
   - if [ -n "$(gofmt -l .)" ]; then echo "Please fix source formatting by 'go fmt ./...'"; false; fi
   # Run unit tests
-  - go test -v
-  - cd goebpf_mock && go test -v
+  - go test -v -coverprofile=coverage.txt -covermode=atomic
+  - cd goebpf_mock && go test -v -coverprofile=coverage.txt -covermode=atomic
   # Travis does not support operations with eBPF, so, just ensure that
   # integration test is compilable Run integration test
   - cd ../itest && make
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
