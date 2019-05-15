@@ -8,7 +8,7 @@ CLANG := clang
 CLANG_INCLUDE := -I../../..
 
 GO_SOURCE := main.go
-GO_BINARY := packet_counter
+GO_BINARY := main
 
 EBPF_SOURCE := ebpf_prog/xdp.c
 EBPF_BINARY := ebpf_prog/xdp.elf
