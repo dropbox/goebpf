@@ -1,12 +1,13 @@
 # Examples
 
-Please note that `eBPF` is supported only by linux, it will not work on `MacOS`!
+Please note that `eBPF` is supported only by Linux, it will not work on `MacOS`!
 
 ## List of examples
 - XDP: [Simple packets protocol counter](https://github.com/dropbox/goebpf/tree/master/examples/xdp/packet_counter)
+- XDP: [Basic Firewall](https://github.com/dropbox/goebpf/tree/master/examples/xdp/basic_firewall)
 
 ## How to run
-All examples actually contains 2 parts:
+All examples actually contain 2 parts:
 - The `eBPF` program written in `C`
 - GO application which acts as a control plane
 
