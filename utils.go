@@ -124,7 +124,7 @@ type ProgramInfo struct {
 	Maps             map[string]Map // Associated eBPF maps
 }
 
-// Helper to convert null terminated string to GO string
+// NullTerminatedStringToString is helper to convert null terminated string to GO string
 func NullTerminatedStringToString(val []byte) string {
 	// Calculate null terminated string len
 	slen := len(val)
@@ -137,7 +137,8 @@ func NullTerminatedStringToString(val []byte) string {
 	return string(val[:slen])
 }
 
-// Queries information about already loaded eBPF program by fd (belongs to local process, cannot be shared)
+// GetProgramInfoByFd queries information about already loaded eBPF program by fd
+// (fd belongs to local process, cannot be shared)
 func GetProgramInfoByFd(fd int) (*ProgramInfo, error) {
 	var logBuf [errCodeBufferSize]byte
 	var infoBuf [1024]byte
@@ -212,7 +213,8 @@ func GetProgramInfoByFd(fd int) (*ProgramInfo, error) {
 	}, nil
 }
 
-// Queries information about already loaded eBPF program by external ID.
+// GetProgramInfoById queries information about already loaded eBPF
+// program by external ID.
 func GetProgramInfoById(id int) (*ProgramInfo, error) {
 	var logBuf [errCodeBufferSize]byte
 
@@ -265,7 +267,8 @@ func parseNumOfPossibleCpus(data string) (int, error) {
 	return second + 1, nil
 }
 
-// Returns number of CPU available to eBPF program
+// GetNumOfPossibleCpus returns number of CPU available to eBPF program
+// NOTE: this is not the same as runtime.NumCPU()
 func GetNumOfPossibleCpus() (int, error) {
 	// Idea taken from
 	// https://elixir.bootlin.com/linux/latest/source/tools/testing/selftests/bpf/bpf_util.h#L10
@@ -283,18 +286,19 @@ func GetNumOfPossibleCpus() (int, error) {
 	return numPossibleCpus, err
 }
 
-// Helper to convert flexible amount of bytes into little endian integer, e.g.:
+// ParseFlexibleIntegerLittleEndian converts flexible amount of bytes
+// into little endian integer, e.g.:
 // {1} -> 1
 // {0xe8, 0x3} -> 10000
 func ParseFlexibleIntegerLittleEndian(rawVal []byte) uint64 {
-	var result uint64 = 0
+	var result uint64
 	for idx, val := range rawVal {
 		result |= uint64(val) << uint(idx*8)
 	}
 	return result
 }
 
-// Helper to covert key/value to bytes
+// KeyValueToBytes coverts interface representation of key/value into bytes
 func KeyValueToBytes(ival interface{}, size int) ([]byte, error) {
 	overflow := fmt.Errorf("Key/Value is too long (must be at most %d)", size)
 

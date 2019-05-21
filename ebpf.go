@@ -3,7 +3,8 @@
 
 package goebpf
 
-// eBPF system - top level interface to interact with eBPF system
+// System defines interface for eBPF system - top level
+// interface to interact with eBPF system
 type System interface {
 	// Read previously compiled eBPF program
 	LoadElf(fn string) error
@@ -17,7 +18,7 @@ type System interface {
 	GetProgramByName(name string) Program
 }
 
-// Single eBPF program interface
+// Program defines eBPF program interface
 type Program interface {
 	// Load program into Linux kernel
 	Load() error
@@ -40,7 +41,7 @@ type Program interface {
 	GetType() ProgramType
 }
 
-// eBPF map interface
+// Map defines interface to interact with eBPF maps
 type Map interface {
 	Create() error
 	GetFd() int
@@ -73,7 +74,7 @@ type ebpfSystem struct {
 	Maps     map[string]Map     // eBPF maps defined by Progs by name
 }
 
-// Creates default eBPF system
+// NewDefaultEbpfSystem creates default eBPF system
 func NewDefaultEbpfSystem() System {
 	return &ebpfSystem{
 		Programs: make(map[string]Program),
@@ -81,14 +82,17 @@ func NewDefaultEbpfSystem() System {
 	}
 }
 
+// GetMaps returns all maps found in .elf file
 func (s *ebpfSystem) GetMaps() map[string]Map {
 	return s.Maps
 }
 
+// GetPrograms returns all eBPF programs found in .elf file
 func (s *ebpfSystem) GetPrograms() map[string]Program {
 	return s.Programs
 }
 
+// GetMapByName returns eBPF map by given name
 func (s *ebpfSystem) GetMapByName(name string) Map {
 	if result, ok := s.Maps[name]; ok {
 		return result
@@ -97,6 +101,7 @@ func (s *ebpfSystem) GetMapByName(name string) Map {
 	}
 }
 
+// GetProgramByName returns eBPF program by given name
 func (s *ebpfSystem) GetProgramByName(name string) Program {
 	if result, ok := s.Programs[name]; ok {
 		return result

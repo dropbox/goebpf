@@ -143,6 +143,7 @@ import (
 	"unsafe"
 )
 
+// MapType is eBPF map type enum
 type MapType int
 
 // Supported eBPF map types.
@@ -208,7 +209,7 @@ func (t MapType) String() string {
 	return "Unknown"
 }
 
-// eBPF map definition
+// EbpfMap is structure to define eBPF map
 type EbpfMap struct {
 	fd int
 	// Map name, picked up automatically by loader from ELF section
@@ -230,8 +231,9 @@ type EbpfMap struct {
 	valueRealSize int
 }
 
-// Helper to support special eBPF map type: LPMtrie. It stands for "Longest Prefix Match Trie"
-// and can be used to match single IPv4/6 address with multiple CIDRs, like
+// CreateLPMtrieKey converts string representation of CIDR into net.IPNet
+// in order to support special eBPF map type: LPMtrie ("Longest Prefix Match Trie")
+// Can be used to match single IPv4/6 address with multiple CIDRs, like
 //	m.Insert(CreateLPMtrieKey("192.168.0.0/16"), "value16")
 //	m.Insert(CreateLPMtrieKey("192.168.0.0/24"), "value24")
 //
@@ -280,7 +282,8 @@ func newMapFromElfSection(data []byte) (*EbpfMap, error) {
 	}, nil
 }
 
-// Creates eBPF map from already existing map by fd available to current process (i.e. created by it).
+// NewMapFromExistingMapByFd creates eBPF map from already existing map by fd
+// available to current process (i.e. created by it).
 // In other words it will work only on maps created by current process.
 func NewMapFromExistingMapByFd(fd int) (*EbpfMap, error) {
 	var logBuf [errCodeBufferSize]byte
@@ -321,8 +324,7 @@ func NewMapFromExistingMapByFd(fd int) (*EbpfMap, error) {
 	}, nil
 }
 
-// Creates eBPF map from BPF object ID.
-//
+// NewMapFromExistingMapById creates eBPF map from BPF object ID.
 // BPF object ID is a kernel mechanism to let non owner process to use BPF objects.
 // Common use case - tooling for troubleshoot / inspect existing BPF objects in the kernel.
 func NewMapFromExistingMapById(id int) (*EbpfMap, error) {
@@ -348,7 +350,7 @@ func (m *EbpfMap) isPerCpu() bool {
 
 // Map elements part: lookup, update / delete / etc
 
-// Create map in kernel
+// Create() creates map in kernel
 func (m *EbpfMap) Create() error {
 	var logBuf [errCodeBufferSize]byte
 
@@ -468,7 +470,7 @@ func (m *EbpfMap) Create() error {
 	return nil
 }
 
-// Destroy eBPF map (remove from kernel)
+// Close destroy eBPF map (removes it from kernel)
 func (m *EbpfMap) Close() error {
 	if m.fd == 0 {
 		return errors.New("Already closed / not created")
@@ -482,12 +484,12 @@ func (m *EbpfMap) Close() error {
 	return nil
 }
 
-// Creates new eBPF map using current map parameters. Main use case is work with array/hash of maps:
+// CloneTemplate creates new instance of eBPF map using current map parameters.
+// Main use case is work with array/hash of maps:
 //
 //	// Create new map based on template
 //	newItem := templateMap.CloneTemplate()
 //	newItem.Create()
-//
 //	// Insert item into array of maps
 //	superMap.Insert(1, newItem)
 func (m *EbpfMap) CloneTemplate() Map {
@@ -497,8 +499,7 @@ func (m *EbpfMap) CloneTemplate() Map {
 	return &res
 }
 
-// Perform lookup and return array of bytes
-//
+// Lookup performs lookup and returns array of bytes
 // WARNING: For Per-CPU array/hash map return value will contain
 // data from all CPUs, i.e. length = valueSize * nCPU
 func (m *EbpfMap) Lookup(ikey interface{}) ([]byte, error) {
@@ -526,8 +527,7 @@ func (m *EbpfMap) Lookup(ikey interface{}) ([]byte, error) {
 	return val, nil
 }
 
-// Perform lookup and return GO string from NULL terminated C string
-//
+// LookupString perform lookup and returns GO string from NULL terminated C string
 // WARNING: Does NOT work for Per-CPU maps (not an real use case?).
 func (m *EbpfMap) LookupString(ikey interface{}) (string, error) {
 	if m.isPerCpu() {
@@ -561,16 +561,14 @@ func (m *EbpfMap) parseFlexibleMultiInteger(rawVal []byte) uint64 {
 	return val
 }
 
-// Perform lookup and return integer
-//
+// LookupInt performs lookup and returns integer
 // WARNING: For Per-CPU array/hash returns sum of values from all CPUs
 func (m *EbpfMap) LookupInt(ikey interface{}) (int, error) {
 	val, err := m.LookupUint64(ikey)
 	return int(val), err
 }
 
-// Perform lookup and return uint64
-//
+// LookupUint64 performs lookup and returns uint64
 // WARNING: For Per-CPU array/hash returns sum of values from all CPUs
 func (m *EbpfMap) LookupUint64(ikey interface{}) (uint64, error) {
 	if m.ValueSize > 8 {
@@ -619,15 +617,13 @@ func (m *EbpfMap) updateImpl(ikey interface{}, ivalue interface{}, op int) error
 
 }
 
-// Inserts value at given ikey.
-//
+// Insert inserts value into eBPF map at given ikey.
 // Supported key/value types are: int, uint8, uint16, uint32, int32, uint64, string, []byte, net.IPNet
 func (m *EbpfMap) Insert(ikey interface{}, ivalue interface{}) error {
 	return m.updateImpl(ikey, ivalue, bpfNoexist)
 }
 
-// Updates (replaces) element at given ikey.
-//
+// Update updates (replaces) element at given ikey.
 // Supported ivalue types are: int, uint8, uint16, uint32, int32, uint64, string, []byte, net.IPNet
 //
 // Element must be inserted before for non array types (map, hash)
@@ -635,7 +631,8 @@ func (m *EbpfMap) Update(ikey interface{}, ivalue interface{}) error {
 	return m.updateImpl(ikey, ivalue, bpfExist)
 }
 
-// Deletes element by given ikey. Is not supported for array based types.
+// Delete deletes element by given ikey.
+// Array based types are not supported.
 func (m *EbpfMap) Delete(ikey interface{}) error {
 	// Convert key into bytes
 	key, err := KeyValueToBytes(ikey, int(m.KeySize))
@@ -659,12 +656,12 @@ func (m *EbpfMap) Delete(ikey interface{}) error {
 	return nil
 }
 
-// Returns FD (file descriptor) of eBPF map
+// GetFd returns fd (file descriptor) of eBPF map
 func (m *EbpfMap) GetFd() int {
 	return m.fd
 }
 
-// Returns Map Name
+// GetName returns map name
 func (m *EbpfMap) GetName() string {
 	return m.Name
 }

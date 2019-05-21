@@ -52,6 +52,7 @@ import (
 	"unsafe"
 )
 
+// ProgramType is eBPF program types enum
 type ProgramType int
 
 // Must be in sync with enum bpf_prog_type from <linux/bpf.h>
@@ -105,7 +106,7 @@ func (t ProgramType) String() string {
 	return "Unknown"
 }
 
-// Base program is shared common things of eBPF programs
+// BaseProgram is common shared fields of eBPF programs
 type BaseProgram struct {
 	fd            int // File Descriptor
 	name          string
@@ -115,7 +116,7 @@ type BaseProgram struct {
 	kernelVersion int    // Kernel requires version to match running for "kprobe" programs
 }
 
-// Load program into Linux kernel
+// Load loads program into linux kernel
 func (prog *BaseProgram) Load() error {
 	// Sanity checks
 	if len(prog.name) >= C.BPF_OBJ_NAME_LEN {
@@ -149,7 +150,7 @@ func (prog *BaseProgram) Load() error {
 	return nil
 }
 
-// Unload program from kernel
+// Close unloads program from kernel
 func (prog *BaseProgram) Close() error {
 	if prog.fd == 0 {
 		return errors.New("Already closed / not created")
@@ -163,24 +164,24 @@ func (prog *BaseProgram) Close() error {
 	return nil
 }
 
-// Returns program name as defined in C code
+// GetName returns program name as defined in C code
 func (prog *BaseProgram) GetName() string {
 	return prog.name
 }
 
-// Returns program type
+// GetType returns program type
 func (prog *BaseProgram) GetType() ProgramType {
 	return prog.programType
 }
 
-// Returns program's file description
+// GetFd returns program's file description
 func (prog *BaseProgram) GetFd() int {
 	return prog.fd
 }
 
-// Returns amount of instructions
+// GetSize returns eBPF bytecode size in bytes
 func (prog *BaseProgram) GetSize() int {
-	return len(prog.bytecode) / bpfInstructionLen
+	return len(prog.bytecode)
 }
 
 // Returns program's license
