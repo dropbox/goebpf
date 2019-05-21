@@ -39,19 +39,17 @@ func (m *MockSystem) GetPrograms() map[string]goebpf.Program {
 }
 
 // GetMapByName returns eBPF map by name or nil if not found
-func (s *MockSystem) GetMapByName(name string) goebpf.Map {
-	if result, ok := s.Maps[name]; ok {
+func (m *MockSystem) GetMapByName(name string) goebpf.Map {
+	if result, ok := m.Maps[name]; ok {
 		return result
-	} else {
-		return nil
 	}
+	return nil
 }
 
 // GetProgramByName returns eBPF program by name or nil if not found
-func (s *MockSystem) GetProgramByName(name string) goebpf.Program {
-	if result, ok := s.Programs[name]; ok {
+func (m *MockSystem) GetProgramByName(name string) goebpf.Program {
+	if result, ok := m.Programs[name]; ok {
 		return result
-	} else {
-		return nil
 	}
+	return nil
 }

@@ -184,7 +184,7 @@ func (prog *BaseProgram) GetSize() int {
 	return len(prog.bytecode)
 }
 
-// Returns program's license
+// GetLicense returns program's license
 func (prog *BaseProgram) GetLicense() string {
 	return prog.license
 }

@@ -431,7 +431,7 @@ func (m *MockMap) LookupInt(ikey interface{}) (int, error) {
 	return int(val), err
 }
 
-// LookupInt perform lookup and returns uint64
+// LookupUint64 perform lookup and returns uint64
 func (m *MockMap) LookupUint64(ikey interface{}) (uint64, error) {
 	if m.ValueSize > 8 {
 		return 0, errors.New("Value is too large to fit int")

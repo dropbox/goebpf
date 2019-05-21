@@ -350,7 +350,7 @@ func (m *EbpfMap) isPerCpu() bool {
 
 // Map elements part: lookup, update / delete / etc
 
-// Create() creates map in kernel
+// Create creates map in kernel
 func (m *EbpfMap) Create() error {
 	var logBuf [errCodeBufferSize]byte
 

@@ -31,7 +31,7 @@ func (m *MockProgram) Load() error {
 	return nil
 }
 
-// CLose does nothing, only to implement Program interface
+// Close does nothing, only to implement Program interface
 func (m *MockProgram) Close() error {
 	m.Fd = 0
 	return nil
@@ -60,16 +60,16 @@ func (m *MockProgram) GetType() goebpf.ProgramType {
 }
 
 // GetLicense return program's license
-func (prog *MockProgram) GetLicense() string {
-	return prog.License
+func (m *MockProgram) GetLicense() string {
+	return m.License
 }
 
 // GetName return program name
-func (prog *MockProgram) GetName() string {
-	return prog.Name
+func (m *MockProgram) GetName() string {
+	return m.Name
 }
 
 // GetSize returns program size set by user
-func (prog *MockProgram) GetSize() int {
-	return prog.Size
+func (m *MockProgram) GetSize() int {
+	return m.Size
 }
