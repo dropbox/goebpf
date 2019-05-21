@@ -11,7 +11,8 @@ A nice and convenient way to work with `eBPF` programs from Go.
 
 ## Supported eBPF program types
 Currently only one program supported:
-- `XDP`.
+- `XDP`
+
 Support for other types of program can be added in future. Feel free to contribute :)
 
 ## Installation
