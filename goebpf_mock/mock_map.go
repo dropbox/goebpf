@@ -305,6 +305,7 @@ import (
 	"github.com/dropbox/goebpf"
 )
 
+// MockMap defines eBPF mockmap and implements Map interface
 type MockMap struct {
 	fd         unsafe.Pointer
 	Name       string
@@ -314,8 +315,8 @@ type MockMap struct {
 	MaxEntries int
 }
 
-// In case of cross compile/link eBPF program to GO executable
-// this map will contain all eBPF maps defined in eBPF program
+// MockMaps is list of cross compiled/linked eBPF maps into GO executable
+// This map will contain all eBPF maps defined in eBPF program
 var MockMaps map[string]goebpf.Map
 
 func init() {
@@ -342,6 +343,7 @@ func init() {
 	}
 }
 
+// Create creates MockMap
 func (m *MockMap) Create() error {
 	if m.KeySize == 0 {
 		m.KeySize = 4
@@ -364,12 +366,14 @@ func (m *MockMap) Create() error {
 	return nil
 }
 
+// Close does nothing - just to implement Map interface
 func (m *MockMap) Close() error {
 	m.fd = nil
 
 	return nil
 }
 
+// CloneTemplate creates clone of current map
 func (m *MockMap) CloneTemplate() goebpf.Map {
 	res := *m
 	res.fd = nil
@@ -377,6 +381,7 @@ func (m *MockMap) CloneTemplate() goebpf.Map {
 	return &res
 }
 
+// Destroy destroys mock map
 func (m *MockMap) Destroy() error {
 	res := C.bpf_map_destroy(m.fd)
 
@@ -387,6 +392,7 @@ func (m *MockMap) Destroy() error {
 	return nil
 }
 
+// Lookup is generic implementation for all other Lookups (string, int, etc)
 func (m *MockMap) Lookup(ikey interface{}) ([]byte, error) {
 	// Convert key into bytes
 	key, err := goebpf.KeyValueToBytes(ikey, m.KeySize)
@@ -408,7 +414,7 @@ func (m *MockMap) Lookup(ikey interface{}) ([]byte, error) {
 	return val, nil
 }
 
-// Perform lookup and return GO string from NULL terminated C string
+// LookupString perform lookup and returns GO string from NULL terminated C string
 func (m *MockMap) LookupString(ikey interface{}) (string, error) {
 	val, err := m.Lookup(ikey)
 	if err != nil {
@@ -418,12 +424,14 @@ func (m *MockMap) LookupString(ikey interface{}) (string, error) {
 	return goebpf.NullTerminatedStringToString(val), nil
 }
 
+// LookupInt perform lookup and returns int
 func (m *MockMap) LookupInt(ikey interface{}) (int, error) {
 	val, err := m.LookupUint64(ikey)
 
 	return int(val), err
 }
 
+// LookupInt perform lookup and returns uint64
 func (m *MockMap) LookupUint64(ikey interface{}) (uint64, error) {
 	if m.ValueSize > 8 {
 		return 0, errors.New("Value is too large to fit int")
@@ -436,6 +444,8 @@ func (m *MockMap) LookupUint64(ikey interface{}) (uint64, error) {
 	return goebpf.ParseFlexibleIntegerLittleEndian(val), nil
 }
 
+// Insert insert new element into mock map.
+// Valid only for non array maps.
 func (m *MockMap) Insert(ikey interface{}, ivalue interface{}) error {
 	// Convert key/value into bytes
 	key, err := goebpf.KeyValueToBytes(ikey, m.KeySize)
@@ -462,6 +472,7 @@ func (m *MockMap) Insert(ikey interface{}, ivalue interface{}) error {
 	return nil
 }
 
+// Update updates existing element in mock map
 func (m *MockMap) Update(ikey interface{}, ivalue interface{}) error {
 	// Hash based maps require item to be exists before update
 	if m.Type == goebpf.MapTypeHash {
@@ -474,6 +485,8 @@ func (m *MockMap) Update(ikey interface{}, ivalue interface{}) error {
 	return m.Insert(ikey, ivalue)
 }
 
+// Delete deletes element from mock map
+// Valid only for non array map types
 func (m *MockMap) Delete(ikey interface{}) error {
 	// Convert key into bytes
 	key, err := goebpf.KeyValueToBytes(ikey, m.KeySize)
@@ -493,6 +506,7 @@ func (m *MockMap) Delete(ikey interface{}) error {
 	return nil
 }
 
+// GetFd returns mock file descriptor of map
 func (m *MockMap) GetFd() int {
 	return int(uintptr(m.fd))
 }
@@ -501,7 +515,8 @@ func (m *MockMap) GetName() string {
 	return m.Name
 }
 
-// Cleanup / re-create all mock maps - useful for unittests
+// CleanupAllMockMaps re-creates all mock maps
+// Useful for unittests
 func CleanupAllMockMaps() {
 	for _, m := range MockMaps {
 		mm := m.(*MockMap)
