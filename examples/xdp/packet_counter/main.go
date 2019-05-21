@@ -63,7 +63,8 @@ func main() {
 	signal.Notify(ctrlC, os.Interrupt)
 
 	// Print stat every second / exit on CTRL+C
-	fmt.Println("XDP program successfully loaded and attached. Counters refreshed every second.\n")
+	fmt.Println("XDP program successfully loaded and attached. Counters refreshed every second.")
+	fmt.Println()
 	ticker := time.NewTicker(1 * time.Second)
 	for {
 		select {

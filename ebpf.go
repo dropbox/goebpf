@@ -33,7 +33,7 @@ type Program interface {
 	GetName() string
 	// Returns program file descriptor (given by kernel)
 	GetFd() int
-	// Returns size of program in BPF instructions (each instruction - 8 bytes)
+	// Returns size of program in bytes
 	GetSize() int
 	// Returns program's license
 	GetLicense() string
@@ -96,16 +96,14 @@ func (s *ebpfSystem) GetPrograms() map[string]Program {
 func (s *ebpfSystem) GetMapByName(name string) Map {
 	if result, ok := s.Maps[name]; ok {
 		return result
-	} else {
-		return nil
 	}
+	return nil
 }
 
 // GetProgramByName returns eBPF program by given name
 func (s *ebpfSystem) GetProgramByName(name string) Program {
 	if result, ok := s.Programs[name]; ok {
 		return result
-	} else {
-		return nil
 	}
+	return nil
 }
