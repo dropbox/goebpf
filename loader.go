@@ -16,8 +16,9 @@ import (
 )
 
 const (
-	// ELF section names for maps / license
-	MapSectionName     = "maps"
+	// MapSectionName is name of ELF section for maps
+	MapSectionName = "maps"
+	// LicenseSectionName is name of ELF section for license info
 	LicenseSectionName = "license"
 
 	// Length of BPF instruction

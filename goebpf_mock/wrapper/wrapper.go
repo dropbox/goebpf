@@ -1,7 +1,7 @@
 // Copyright (c) 2019 Dropbox, Inc.
 // Full license can be found in the LICENSE file.
 
-// GO Wrapper for "cross compiled" XDP in order to call it right from GO
+// Package wrapper is wrapper for "cross compiled" XDP in order to call it right from GO
 // P.S. this should be as part of *_test.go files, however, GO does not support
 // using import "C" from tests... :-(
 package wrapper
@@ -32,4 +32,5 @@ BPF_MAP_ADD(map_array);
 */
 import "C"
 
+// Dummy is simply nothing - just to force golang to include empty package
 const Dummy = 0

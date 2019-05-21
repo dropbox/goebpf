@@ -13,6 +13,7 @@ import (
 	"github.com/vishvananda/netlink"
 )
 
+// XdpResult is eBPF program return code enum
 type XdpResult int
 
 const (
