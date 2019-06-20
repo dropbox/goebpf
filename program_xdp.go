@@ -60,7 +60,11 @@ func newXdpProgram(name, license string, bytecode []byte) Program {
 	}
 }
 
-func (p *xdpProgram) Attach(ifname string) error {
+func (p *xdpProgram) Attach(data interface{}) error {
+	ifname, ok := data.(string)
+	if !ok {
+		return fmt.Errorf("Interface name as string expected, got %T", data)
+	}
 	// Lookup interface by given name, we need to extract iface index
 	iface, err := netlink.LinkByName(ifname)
 	if err != nil {
