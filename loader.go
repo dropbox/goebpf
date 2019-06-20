@@ -33,7 +33,8 @@ const (
 type programCreator func(name, license string, bytecode []byte) Program
 
 var sectionNameToProgramType = map[string]programCreator{
-	"xdp": newXdpProgram,
+	"xdp":           newXdpProgram,
+	"socket_filter": newSocketFilterProgram,
 }
 
 // BPF instruction //
