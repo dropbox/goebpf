@@ -136,7 +136,7 @@ func (prog *BaseProgram) Load() error {
 		name,
 		C.__u32(prog.GetType()),
 		unsafe.Pointer(&prog.bytecode[0]),
-		C.__u32(prog.GetSize()),
+		C.__u32(prog.GetSize())/bpfInstructionLen,
 		license,
 		C.__u32(prog.kernelVersion),
 		unsafe.Pointer(&logBuf[0]),
