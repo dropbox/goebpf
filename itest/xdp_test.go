@@ -96,6 +96,12 @@ func (ts *xdpTestSuite) TestElfLoad() {
 		progs[index] = p
 	}
 
+	// Try to pin program into some filesystem
+	path := bpfPath + "/xdp_pin_test"
+	err = progs[0].Pin(path)
+	ts.NoError(err)
+	ts.FileExists(path)
+
 	// Non existing program
 	nep := eb.GetProgramByName("something")
 	ts.Nil(nep)
