@@ -4,6 +4,7 @@
 package itest
 
 import (
+	"os"
 	"testing"
 	"time"
 
@@ -101,6 +102,7 @@ func (ts *xdpTestSuite) TestElfLoad() {
 	err = progs[0].Pin(path)
 	ts.NoError(err)
 	ts.FileExists(path)
+	os.Remove(path)
 
 	// Non existing program
 	nep := eb.GetProgramByName("something")

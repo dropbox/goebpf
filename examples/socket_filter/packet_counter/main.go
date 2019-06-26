@@ -69,8 +69,11 @@ func main() {
 		fatalError("SO_BINDTODEVICE to %s failed: %v", *iface, err)
 	}
 
-	// Attach eBPF program to socket
-	sf.Attach(sock)
+	// Attach eBPF program to socket as socketFilter
+	err = sf.Attach(goebpf.SocketFilterAttachParams{
+		SocketFd:   sock,
+		AttachType: goebpf.SocketAttachTypeFilter,
+	})
 
 	if err != nil {
 		fatalError("sf.Attach(): %v", err)
