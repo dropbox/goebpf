@@ -44,19 +44,6 @@ static int ebpf_prog_load(const char *name, __u32 prog_type, const void *insns, 
 	return res;
 }
 
-static int ebpf_obj_pin(__u32 fd, const char *pathname,
-		void *log_buf, size_t log_size)
-{
-	union bpf_attr attr = {};
-
-	attr.pathname = ptr_to_u64((void *)pathname);
-	attr.bpf_fd = fd;
-
-	int res = syscall(__NR_bpf, BPF_OBJ_PIN, &attr, sizeof(attr));
-	strncpy(log_buf, strerror(errno), log_size);
-	return res;
-}
-
 */
 import "C"
 import (
@@ -178,22 +165,7 @@ func (prog *BaseProgram) Close() error {
 }
 
 func (prog *BaseProgram) Pin(path string) error {
-	var logBuf [errCodeBufferSize]byte
-	filenameStr := C.CString(path)
-	defer C.free(unsafe.Pointer(filenameStr))
-
-	res := int(C.ebpf_obj_pin(
-		C.__u32(prog.fd),
-		filenameStr,
-		unsafe.Pointer(&logBuf[0]),
-		C.size_t(unsafe.Sizeof(logBuf)),
-	))
-	if res == -1 {
-		return fmt.Errorf("ebpf_obj_pin() to '%s' failed: %s",
-			path, NullTerminatedStringToString(logBuf[:]))
-	}
-
-	return nil
+	return ebpfObjPin(prog.fd, path)
 }
 
 // GetName returns program name as defined in C code
