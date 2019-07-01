@@ -164,6 +164,10 @@ func (prog *BaseProgram) Close() error {
 	return nil
 }
 
+func (prog *BaseProgram) Pin(path string) error {
+	return ebpfObjPin(prog.fd, path)
+}
+
 // GetName returns program name as defined in C code
 func (prog *BaseProgram) GetName() string {
 	return prog.name

@@ -8,9 +8,23 @@ package goebpf
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 #include "bpf.h"
 #include "bpf_helpers.h"
+
+static int ebpf_obj_pin(__u32 fd, const char *pathname,
+		void *log_buf, size_t log_size)
+{
+	union bpf_attr attr = {};
+
+	attr.pathname = ptr_to_u64((void *)pathname);
+	attr.bpf_fd = fd;
+
+	int res = syscall(__NR_bpf, BPF_OBJ_PIN, &attr, sizeof(attr));
+	strncpy(log_buf, strerror(errno), log_size);
+	return res;
+}
 
 static int ebpf_prog_get_fd_by_id(__u32 id,
 		void *log_buf, size_t log_size)
@@ -24,7 +38,7 @@ static int ebpf_prog_get_fd_by_id(__u32 id,
 	return res;
 }
 
-UNUSED static int ebpf_obj_get_info_by_fd(__u32 fd, void *info, __u32 info_len,
+static int ebpf_obj_get_info_by_fd(__u32 fd, void *info, __u32 info_len,
 		void *log_buf, size_t log_size)
 {
 	union bpf_attr attr = {};
@@ -227,6 +241,31 @@ func GetProgramInfoById(id int) (*ProgramInfo, error) {
 	}
 
 	return GetProgramInfoByFd(int(fd))
+}
+
+// Wrapper for ebpf_obj_pin() syscall
+func ebpfObjPin(fd int, path string) error {
+	var logBuf [errCodeBufferSize]byte
+	pathCStr := C.CString(path)
+	defer C.free(unsafe.Pointer(pathCStr))
+	if fd == 0 {
+		return errors.New("ebpfObjPin: invalid fd")
+	}
+	if strings.TrimSpace(path) == "" {
+		return errors.New("ebpfObjPin: empty path")
+	}
+	res := int(C.ebpf_obj_pin(
+		C.__u32(fd),
+		pathCStr,
+		unsafe.Pointer(&logBuf[0]),
+		C.size_t(unsafe.Sizeof(logBuf)),
+	))
+	if res == -1 {
+		return fmt.Errorf("ebpfObjPin to '%s' failed: %s",
+			path, NullTerminatedStringToString(logBuf[:]))
+	}
+
+	return nil
 }
 
 // Helper to close linux file descriptor
