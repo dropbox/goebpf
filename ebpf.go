@@ -22,6 +22,9 @@ type System interface {
 type Program interface {
 	// Load program into Linux kernel
 	Load() error
+	// Pin (save, share) program into given location.
+	// Location must be mounted as bpffs (mount bpffs -t bpffs /some/location)
+	Pin(path string) error
 	// Unload program from kernel
 	Close() error
 	// Attach program to something - depends on program type.

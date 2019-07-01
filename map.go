@@ -77,19 +77,6 @@ static int ebpf_map_delete_elem(__u32 fd, const void *key,
 	return res;
 }
 
-static int ebpf_obj_pin(__u32 fd, const char *pathname,
-		void *log_buf, size_t log_size)
-{
-	union bpf_attr attr = {};
-
-	attr.pathname = ptr_to_u64((void *)pathname);
-	attr.bpf_fd = fd;
-
-	int res = syscall(__NR_bpf, BPF_OBJ_PIN, &attr, sizeof(attr));
-	strncpy(log_buf, strerror(errno), log_size);
-	return res;
-}
-
 static int ebpf_obj_get(const char *pathname,
 		void *log_buf, size_t log_size)
 {
@@ -449,21 +436,14 @@ func (m *EbpfMap) Create() error {
 
 	// If eBPF program decides to make this map system wide - pin it to given location
 	if m.PersistentPath != "" {
-		res := int(C.ebpf_obj_pin(
-			C.__u32(m.fd),
-			persistentPathStr,
-			unsafe.Pointer(&logBuf[0]),
-			C.size_t(unsafe.Sizeof(logBuf)),
-		))
-		if res == -1 {
+		err := ebpfObjPin(m.fd, m.PersistentPath)
+		if err != nil {
 			// Destroy just created map
-			err := m.Close()
-			if err != nil {
-				return fmt.Errorf("ebpf_obj_pin() to '%s' failed: %v, also close() failed: %v",
-					m.PersistentPath, NullTerminatedStringToString(logBuf[:]), err)
+			cerr := m.Close()
+			if cerr != nil {
+				return fmt.Errorf("%v, also close() failed: %v", err, cerr)
 			}
-			return fmt.Errorf("ebpf_obj_pin() to '%s' failed: %s",
-				m.PersistentPath, NullTerminatedStringToString(logBuf[:]))
+			return err
 		}
 	}
 

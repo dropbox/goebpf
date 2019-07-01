@@ -10,7 +10,8 @@ A nice and convenient way to work with `eBPF` programs from Go.
 - Linux Kernel 4.15+
 
 ## Supported eBPF program types
-Currently only one program supported:
+List of currently supported eBPF programs:
+- `SocketFilter`
 - `XDP`
 
 Support for other types of program can be added in future. Feel free to contribute :)

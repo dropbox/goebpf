@@ -4,6 +4,7 @@
 package itest
 
 import (
+	"os"
 	"testing"
 	"time"
 
@@ -95,6 +96,13 @@ func (ts *xdpTestSuite) TestElfLoad() {
 		ts.NotEqual(0, p.GetFd())
 		progs[index] = p
 	}
+
+	// Try to pin program into some filesystem
+	path := bpfPath + "/xdp_pin_test"
+	err = progs[0].Pin(path)
+	ts.NoError(err)
+	ts.FileExists(path)
+	os.Remove(path)
 
 	// Non existing program
 	nep := eb.GetProgramByName("something")
