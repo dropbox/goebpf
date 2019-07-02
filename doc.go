@@ -45,7 +45,7 @@ XDP program (written in C):
 	SEC("xdp")
 	int xdp_drop(struct xdp_md *ctx)
 	{
-	    if (found) { // If SRC IP matches something...
+	    if (found) { // If some condition (e.g. SRC IP) matches...
 	        __u32 idx = 0;
 	        // Increase stat by 1
 	        __u64 *stat = bpf_map_lookup_elem(&drops, &idx);
@@ -63,12 +63,12 @@ Once compiled can be used by goebpf in the following way:
 	err := bpf.LoadElf("xdp.elf")
 	program := bpf.GetProgramByName("xdp_drop") // name matches function name in C
 	err = program.Load() // Load program into kernel
-	err = program.Attach("eth0")
+	err = program.Attach("eth0") // Attach to interface
 	defer program.Detach()
 
 	// Interact with program is simply done through maps:
-	drops := bpf.GetMapByName["drops"]
-	val, err := drops.LookupInt(0)
+	drops := bpf.GetMapByName("drops") // name also matches BPF_MAP_ADD(drops)
+	val, err := drops.LookupInt(0) // Get value from map at index 0
 	if err == nil {
 	    fmt.Printf("Drops: %d\n", val)
 	}
