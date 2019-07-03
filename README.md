@@ -32,7 +32,8 @@ Consider very simple example of Read / Load / Attach
     bpf := goebpf.NewDefaultEbpfSystem()
     // Read clang compiled binary
     bpf.LoadElf("test.elf")
-    // Load XDP program into kernel
+    // Load XDP program into kernel (name matches function name in C)
+    xdp := bpf.GetProgramByName("xdp_test")
     xdp.Load()
     // Attach to interface
     xdp.Attach("eth0")
