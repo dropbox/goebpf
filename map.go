@@ -163,13 +163,13 @@ const (
 
 // Optional flags for ebpf_map_create()
 const (
-	bpfNoPrealloc       =   1
-	bpfNoCommonLRU      =   2
-	bpfNumaNode         =   4
-	bpfReadOnly         =   8
-	bpfWriteOnly        =  16
-	bpfStackBuildId     =  32
-	bpfZeroSeed         =  64
+	bpfNoPrealloc       = 1
+	bpfNoCommonLRU      = 2
+	bpfNumaNode         = 4
+	bpfReadOnly         = 8
+	bpfWriteOnly        = 16
+	bpfStackBuildId     = 32
+	bpfZeroSeed         = 64
 	bpfReadOnlyProgram  = 128
 	bpfWriteOnlyProgram = 256
 )
