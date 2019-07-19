@@ -11,6 +11,7 @@ import (
 
 func TestParseNumOfPossibleCpus(t *testing.T) {
 	runs := map[string]int{
+		"0":       1,
 		"0-0":     1,
 		"0-1":     2,
 		"0-14":    15,
