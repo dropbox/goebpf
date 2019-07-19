@@ -286,10 +286,14 @@ func closeFd(fd int) error {
 
 // Helper to get number of possible system CPUs from string
 func parseNumOfPossibleCpus(data string) (int, error) {
-	// Input looks like:
+	eInvalid := errors.New("Unable to get # of possible CPUs: invalid file format")
+	// VM support: when machine has only one CPU input is "0"
+	if strings.TrimSpace(data) == "0" {
+		return 1, nil
+	}
+	// Otherwise input looks like:
 	// 0-14
 	// where 0 is first possible CPU and 14 is the last
-	eInvalid := errors.New("Unable to get # of possible CPUs: invalid file format")
 	items := strings.Split(strings.TrimSpace(data), "-")
 	if len(items) != 2 {
 		return 0, eInvalid
