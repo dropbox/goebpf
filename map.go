@@ -135,24 +135,43 @@ type MapType int
 
 // Supported eBPF map types.
 const (
-	MapTypeHash           MapType = C.BPF_MAP_TYPE_HASH
-	MapTypeArray          MapType = C.BPF_MAP_TYPE_ARRAY
-	MapTypeProgArray      MapType = C.BPF_MAP_TYPE_PROG_ARRAY
-	MapTypePerfEventArray MapType = C.BPF_MAP_TYPE_PERF_EVENT_ARRAY
-	MapTypePerCPUHash     MapType = C.BPF_MAP_TYPE_PERCPU_HASH
-	MapTypePerCPUArray    MapType = C.BPF_MAP_TYPE_PERCPU_ARRAY
-	MapTypeStackTrace     MapType = C.BPF_MAP_TYPE_STACK_TRACE
-	MapTypeCgroupArray    MapType = C.BPF_MAP_TYPE_CGROUP_ARRAY
-	MapTypeLRUHash        MapType = C.BPF_MAP_TYPE_LRU_HASH
-	MapTypeLRUPerCPUHash  MapType = C.BPF_MAP_TYPE_LRU_PERCPU_HASH
-	MapTypeLPMTrie        MapType = C.BPF_MAP_TYPE_LPM_TRIE
-	MapTypeArrayOfMaps    MapType = C.BPF_MAP_TYPE_ARRAY_OF_MAPS
-	MapTypeHashOfMaps     MapType = C.BPF_MAP_TYPE_HASH_OF_MAPS
+	MapTypeHash                MapType = C.BPF_MAP_TYPE_HASH
+	MapTypeArray               MapType = C.BPF_MAP_TYPE_ARRAY
+	MapTypeProgArray           MapType = C.BPF_MAP_TYPE_PROG_ARRAY
+	MapTypePerfEventArray      MapType = C.BPF_MAP_TYPE_PERF_EVENT_ARRAY
+	MapTypePerCPUHash          MapType = C.BPF_MAP_TYPE_PERCPU_HASH
+	MapTypePerCPUArray         MapType = C.BPF_MAP_TYPE_PERCPU_ARRAY
+	MapTypeStackTrace          MapType = C.BPF_MAP_TYPE_STACK_TRACE
+	MapTypeCgroupArray         MapType = C.BPF_MAP_TYPE_CGROUP_ARRAY
+	MapTypeLRUHash             MapType = C.BPF_MAP_TYPE_LRU_HASH
+	MapTypeLRUPerCPUHash       MapType = C.BPF_MAP_TYPE_LRU_PERCPU_HASH
+	MapTypeLPMTrie             MapType = C.BPF_MAP_TYPE_LPM_TRIE
+	MapTypeArrayOfMaps         MapType = C.BPF_MAP_TYPE_ARRAY_OF_MAPS
+	MapTypeHashOfMaps          MapType = C.BPF_MAP_TYPE_HASH_OF_MAPS
+	MapTypeDevMap              MapType = C.BPF_MAP_TYPE_DEVMAP
+	MapTypeSockMap             MapType = C.BPF_MAP_TYPE_SOCKMAP
+	MapTypeCPUMap              MapType = C.BPF_MAP_TYPE_CPUMAP
+	MapTypeXSKMap              MapType = C.BPF_MAP_TYPE_XSKMAP
+	MapTypeSockHash            MapType = C.BPF_MAP_TYPE_SOCKHASH
+	MapTypeCGroupStorage       MapType = C.BPF_MAP_TYPE_CGROUP_STORAGE
+	MapTypeReusePortSockArray  MapType = C.BPF_MAP_TYPE_REUSEPORT_SOCKARRAY
+	MapTypePerCpuCGroupStorage MapType = C.BPF_MAP_TYPE_PERCPU_CGROUP_STORAGE
+	MapTypeQueue               MapType = C.BPF_MAP_TYPE_QUEUE
+	MapTypeStack               MapType = C.BPF_MAP_TYPE_STACK
+	MapTypeSKStorage           MapType = C.BPF_MAP_TYPE_SK_STORAGE
 )
 
 // Optional flags for ebpf_map_create()
 const (
-	bpfNoPrealloc = 1
+	bpfNoPrealloc       = 1
+	bpfNoCommonLRU      = 2
+	bpfNumaNode         = 4
+	bpfReadOnly         = 8
+	bpfWriteOnly        = 16
+	bpfStackBuildId     = 32
+	bpfZeroSeed         = 64
+	bpfReadOnlyProgram  = 128
+	bpfWriteOnlyProgram = 256
 )
 
 // Optional flags for ebpf_map_update_elem()
@@ -160,6 +179,7 @@ const (
 	bpfAny     = C.BPF_ANY     // create new element or update existing
 	bpfNoexist = C.BPF_NOEXIST // create new element if it didn't exist
 	bpfExist   = C.BPF_EXIST   // update existing element
+	bpfFLock   = C.BPF_F_LOCK  // spin_lock-ed map_lookup/map_update
 )
 
 // Returns user friendly name for MapType
@@ -191,6 +211,28 @@ func (t MapType) String() string {
 		return "Array of maps"
 	case MapTypeHashOfMaps:
 		return "Hash of maps"
+	case MapTypeDevMap:
+		return "Device map"
+	case MapTypeSockMap:
+		return "Socket map"
+	case MapTypeCPUMap:
+		return "CPU map"
+	case MapTypeXSKMap:
+		return "AF_XDP socket map"
+	case MapTypeSockHash:
+		return "Socket hash"
+	case MapTypeCGroupStorage:
+		return "CGroup storage"
+	case MapTypeReusePortSockArray:
+		return "Reuseport socket array"
+	case MapTypePerCpuCGroupStorage:
+		return "per-CPU CGroup storage"
+	case MapTypeQueue:
+		return "Queue"
+	case MapTypeStack:
+		return "Stack"
+	case MapTypeSKStorage:
+		return "Socket storage"
 	}
 
 	return "Unknown"
@@ -332,7 +374,8 @@ func NewMapFromExistingMapById(id int) (*EbpfMap, error) {
 func (m *EbpfMap) isPerCpu() bool {
 	return m.Type == MapTypePerCPUArray ||
 		m.Type == MapTypePerCPUHash ||
-		m.Type == MapTypeLRUPerCPUHash
+		m.Type == MapTypeLRUPerCPUHash ||
+		m.Type == MapTypePerCpuCGroupStorage
 }
 
 // Map elements part: lookup, update / delete / etc
