@@ -485,6 +485,11 @@ func (m *MockMap) Update(ikey interface{}, ivalue interface{}) error {
 	return m.Insert(ikey, ivalue)
 }
 
+// Upsert updates existing element in mock map, or inserts one if it did not exist yet
+func (m *MockMap) Upsert(ikey interface{}, ivalue interface{}) error {
+	return m.Insert(ikey, ivalue)
+}
+
 // Delete deletes element from mock map
 // Valid only for non array map types
 func (m *MockMap) Delete(ikey interface{}) error {
