@@ -35,6 +35,12 @@ func (ts *mapTestSuite) TestMapHash() {
 	err = m.Insert("empty", "")
 	ts.NoError(err)
 
+	//use upsert to insert
+	err = m.Upsert("upsert1", "upvalue1")
+	ts.NoError(err)
+	err = m.Upsert("upsert2", "upvalue2")
+	ts.NoError(err)
+
 	// Lookup(generic) previously inserted item
 	bval, err := m.Lookup("str123")
 	ts.NoError(err)
@@ -49,6 +55,15 @@ func (ts *mapTestSuite) TestMapHash() {
 	ts.NoError(err)
 	ts.Equal("", sval)
 
+	// Lookup upserted items(string)
+	sval, err = m.LookupString("upsert1")
+	ts.NoError(err)
+	ts.Equal("upvalue1", sval)
+
+	sval, err = m.LookupString("upsert2")
+	ts.NoError(err)
+	ts.Equal("upvalue2", sval)
+
 	// Update item
 	err = m.Update("str123", "newval")
 	ts.NoError(err)
@@ -56,6 +71,14 @@ func (ts *mapTestSuite) TestMapHash() {
 	sval, err = m.LookupString("str123")
 	ts.NoError(err)
 	ts.Equal("newval", sval)
+
+	// update item using upsert
+	err = m.Upsert("upsert1", "newupval")
+	ts.NoError(err)
+	// Lookup again - to verify that value got updated
+	sval, err = m.LookupString("upsert1")
+	ts.NoError(err)
+	ts.Equal("newupval", sval)
 
 	// Delete item
 	err = m.Delete("str1")

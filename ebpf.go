@@ -64,6 +64,7 @@ type Map interface {
 	LookupString(interface{}) (string, error)
 	Insert(interface{}, interface{}) error
 	Update(interface{}, interface{}) error
+	Upsert(interface{}, interface{}) error
 	Delete(interface{}) error
 }
 
