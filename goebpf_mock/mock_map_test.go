@@ -142,6 +142,22 @@ func TestMockMapHash(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 200, value)
 
+	//upsert non existing item
+	err = m.Upsert(12, 101)
+	assert.NoError(t, err)
+
+	value, err = m.LookupInt(12)
+	assert.NoError(t, err)
+	assert.Equal(t, 101, value)
+
+	//upsert existing item
+	err = m.Upsert(12, 102)
+	assert.NoError(t, err)
+
+	value, err = m.LookupInt(12)
+	assert.NoError(t, err)
+	assert.Equal(t, 102, value)
+
 	// Delete
 	err = m.Delete(11)
 	assert.NoError(t, err)

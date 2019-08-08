@@ -654,6 +654,13 @@ func (m *EbpfMap) Update(ikey interface{}, ivalue interface{}) error {
 	return m.updateImpl(ikey, ivalue, bpfExist)
 }
 
+// Upsert updates (replaces) or inserts element at given ikey.
+// Supported ivalue types are: int, uint8, uint16, uint32, int32, uint64, string, []byte, net.IPNet
+//
+func (m *EbpfMap) Upsert(ikey interface{}, ivalue interface{}) error {
+	return m.updateImpl(ikey, ivalue, bpfAny)
+}
+
 // Delete deletes element by given ikey.
 // Array based types are not supported.
 func (m *EbpfMap) Delete(ikey interface{}) error {
