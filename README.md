@@ -51,3 +51,6 @@ Like it? Check our [examples](https://github.com/dropbox/goebpf/tree/master/exam
 - [AF_XDP: Accelerating networking](https://lwn.net/Articles/750845/)
 - [eBPF, part 1: Past, Present, and Future](https://ferrisellis.com/posts/ebpf_past_present_future/)
 - [eBPF, part 2: Syscall and Map Types](https://ferrisellis.com/posts/ebpf_syscall_and_maps/)
+- [Oracle Blog: A Tour of eBPF Program Types](https://blogs.oracle.com/linux/notes-on-bpf-1)
+- [Oracle Blog: eBPF Helper Functions](https://blogs.oracle.com/linux/notes-on-bpf-2)
+- [Oracle Blog: Communicating with Userspace](https://blogs.oracle.com/linux/notes-on-bpf-3)
