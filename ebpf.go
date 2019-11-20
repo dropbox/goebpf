@@ -50,6 +50,7 @@ type Map interface {
 	Create() error
 	GetFd() int
 	GetName() string
+	GetType() MapType
 	Close() error
 	// Makes a copy of map definition. This will NOT create map, just copies definition, "template".
 	// Useful for array/map of maps use case
