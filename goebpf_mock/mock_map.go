@@ -516,8 +516,14 @@ func (m *MockMap) GetFd() int {
 	return int(uintptr(m.fd))
 }
 
+// GetName returns mock map name
 func (m *MockMap) GetName() string {
 	return m.Name
+}
+
+// GetType returns mock map type
+func (m *MockMap) GetType() goebpf.MapType {
+	return m.Type
 }
 
 // CleanupAllMockMaps re-creates all mock maps

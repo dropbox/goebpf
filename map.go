@@ -695,3 +695,8 @@ func (m *EbpfMap) GetFd() int {
 func (m *EbpfMap) GetName() string {
 	return m.Name
 }
+
+// GetType returns map type
+func (m *EbpfMap) GetType() MapType {
+	return m.Type
+}

@@ -111,8 +111,7 @@ func fatalError(format string, args ...interface{}) {
 func printBpfInfo(bpf goebpf.System) {
 	fmt.Println("Maps:")
 	for _, item := range bpf.GetMaps() {
-		m := item.(*goebpf.EbpfMap)
-		fmt.Printf("\t%s: %v, Fd %v\n", m.Name, m.Type, m.GetFd())
+		fmt.Printf("\t%s: %v, Fd %v\n", item.GetName(), item.GetType(), item.GetFd())
 	}
 	fmt.Println("\nPrograms:")
 	for _, prog := range bpf.GetPrograms() {
