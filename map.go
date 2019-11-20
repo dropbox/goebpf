@@ -422,11 +422,7 @@ func (m *EbpfMap) Create() error {
 
 	// Per-CPU maps require extra space to store values from ALL possible CPUs
 	if m.isPerCpu() {
-		numCpus, err := GetNumOfPossibleCpus()
-		if err != nil {
-			return err
-		}
-		m.valueRealSize = m.ValueSize * numCpus
+		m.valueRealSize = m.ValueSize * GetNumOfPossibleCpus()
 	} else {
 		m.valueRealSize = m.ValueSize
 	}

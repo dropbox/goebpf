@@ -13,6 +13,18 @@ package goebpf
 #include "bpf.h"
 #include "bpf_helpers.h"
 
+
+// Mac does not have "sys/sysinfo.h" header, so making dummy here
+#ifdef __APPLE__
+static int get_nprocs(void)
+{
+	return 0;
+}
+#else
+#include "sys/sysinfo.h"
+#endif
+
+
 static int ebpf_obj_pin(__u32 fd, const char *pathname,
 		void *log_buf, size_t log_size)
 {
@@ -105,9 +117,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -284,49 +294,16 @@ func closeFd(fd int) error {
 	return nil
 }
 
-// Helper to get number of possible system CPUs from string
-func parseNumOfPossibleCpus(data string) (int, error) {
-	eInvalid := errors.New("Unable to get # of possible CPUs: invalid file format")
-	// VM support: when machine has only one CPU input is "0"
-	if strings.TrimSpace(data) == "0" {
-		return 1, nil
-	}
-	// Otherwise input looks like:
-	// 0-14
-	// where 0 is first possible CPU and 14 is the last
-	items := strings.Split(strings.TrimSpace(data), "-")
-	if len(items) != 2 {
-		return 0, eInvalid
-	}
-	first, err := strconv.Atoi(items[0])
-	if err != nil || first != 0 {
-		return 0, eInvalid
-	}
-	second, err := strconv.Atoi(items[1])
-	if err != nil {
-		return 0, eInvalid
-	}
-
-	return second + 1, nil
-}
-
 // GetNumOfPossibleCpus returns number of CPU available to eBPF program
 // NOTE: this is not the same as runtime.NumCPU()
-func GetNumOfPossibleCpus() (int, error) {
-	// Idea taken from
-	// https://elixir.bootlin.com/linux/latest/source/tools/testing/selftests/bpf/bpf_util.h#L10
-	// P.S. runtime.NumCPU() cannot be used since it returns number of logical CPUs
-	var err error
+func GetNumOfPossibleCpus() int {
 
+	// Do syscall only once
 	getPossibleCpusOnce.Do(func() {
-		var data []byte
-		data, err = ioutil.ReadFile("/sys/devices/system/cpu/possible")
-		if err == nil {
-			numPossibleCpus, err = parseNumOfPossibleCpus(string(data))
-		}
+		numPossibleCpus = int(C.get_nprocs())
 	})
 
-	return numPossibleCpus, err
+	return numPossibleCpus
 }
 
 // ParseFlexibleIntegerLittleEndian converts flexible amount of bytes
