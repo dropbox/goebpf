@@ -12,6 +12,7 @@ import (
 )
 
 func TestGetNumOfPossibleCpus(t *testing.T) {
-	cpus := goebpf.GetNumOfPossibleCpus()
+	cpus, err := goebpf.GetNumOfPossibleCpus()
+	assert.NoError(t, err)
 	assert.True(t, cpus > 0)
 }

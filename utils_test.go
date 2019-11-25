@@ -9,6 +9,38 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestParseNumOfPossibleCpus(t *testing.T) {
+	runs := map[string]int{
+		"0":       1,
+		"0-0":     1,
+		"0-1":     2,
+		"0-14":    15,
+		"0-1\r\n": 2,
+	}
+
+	for str, numExpected := range runs {
+		num, err := parseNumOfPossibleCpus(str)
+		assert.NoError(t, err)
+		assert.Equal(t, numExpected, num)
+	}
+
+	// Negative runs
+	runsNegative := []string{
+		"",
+		"1",
+		"1-1",
+		"1-",
+		"-1",
+		"\r\n",
+	}
+
+	for _, str := range runsNegative {
+		num, err := parseNumOfPossibleCpus(str)
+		assert.Error(t, err)
+		assert.Equal(t, 0, num)
+	}
+}
+
 // Negative test for closeFd()
 func TestCloseFd(t *testing.T) {
 	err := closeFd(1111) // Some non-existing fd
