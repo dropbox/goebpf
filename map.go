@@ -606,8 +606,9 @@ func (m *EbpfMap) LookupUint64(ikey interface{}) (uint64, error) {
 
 // Actual implementation for Insert / Update methods
 func (m *EbpfMap) updateImpl(ikey interface{}, ivalue interface{}, op int) error {
-	// ArrayOfMaps/ProgArray requires BPF_ANY in order to update item for some reason... :(
-	if m.Type == MapTypeArrayOfMaps || m.Type == MapTypeProgArray {
+	// Special maps ArrayOfMaps/ProgArray/PerfEventArray requires BPF_ANY
+	// in order to update item for some reason... :(
+	if m.Type == MapTypeArrayOfMaps || m.Type == MapTypeProgArray || m.Type == MapTypePerfEventArray {
 		op = bpfAny
 	}
 	// Convert key/value into bytes
