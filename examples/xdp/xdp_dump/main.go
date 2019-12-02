@@ -8,9 +8,9 @@ import (
 	"encoding/binary"
 	"flag"
 	"fmt"
+	"net"
 	"os"
 	"os/signal"
-	"syscall"
 
 	"github.com/dropbox/goebpf"
 )
@@ -19,11 +19,19 @@ var iface = flag.String("iface", "", "Interface to bind XDP program to")
 var elf = flag.String("elf", "ebpf_prog/xdp_dump.elf", "clang/llvm compiled binary file")
 var programName = flag.String("program", "xdp_dump", "Name of XDP program (function name)")
 
+// In sync with xdp_dump.c  "struct perf_event_item"
+type perfEventItem struct {
+	SrcIp, DstIp     uint32
+	SrcPort, DstPort uint16
+}
+
 func main() {
 	flag.Parse()
 	if *iface == "" {
 		fatalError("-iface is required.")
 	}
+
+	fmt.Println("\nXDP dump example program\n")
 
 	// Create eBPF system / load .ELF files compiled by clang/llvm
 	bpf := goebpf.NewDefaultEbpfSystem()
@@ -63,39 +71,35 @@ func main() {
 	ctrlC := make(chan os.Signal, 1)
 	signal.Notify(ctrlC, os.Interrupt)
 
-	// Print stat every second / exit on CTRL+C
-	fmt.Println("XDP program successfully loaded and attached. Counters refreshed every second.")
-	fmt.Println()
-
-	perf, _ := goebpf.NewPerfEvent(perfmap)
-
-	perfUpdates, err := perf.Start(0)
+	// Start listening to Perf Events
+	perf, _ := goebpf.NewPerfEvents(perfmap)
+	perfEvents, err := perf.StartForAllProcessesAndCPUs(4096)
 	if err != nil {
-		fatalError("perf.Start(): %v", err)
+		fatalError("perf.StartForAllProcessesAndCPUs(): %v", err)
 	}
 	defer perf.Stop()
 
-	type Srcs struct {
-		Src, Dst, Size uint32
-	}
+	fmt.Println("XDP program successfully loaded and attached.")
+	fmt.Println("All new TCP connection requests (SYN) coming to this host will be dumped here.")
+	fmt.Println()
 
-	var last uint32
-	missed := 0
+	var event perfEventItem
 	for {
 		select {
-		case upd := <-perfUpdates:
-			reader := bytes.NewReader(upd)
-			var data Srcs
-			binary.Read(reader, binary.LittleEndian, &data)
-			fmt.Printf("src=%x dst=%d sz=%d\n", data.Src, data.Dst, data.Size)
-			if data.Dst > last+1 {
-				fmt.Println("MISSSS")
-				missed++
-			}
-			last = data.Dst
+
+		case eventData := <-perfEvents:
+			reader := bytes.NewReader(eventData)
+			binary.Read(reader, binary.LittleEndian, &event)
+			fmt.Printf("TCP: %v:%d -> %v:%d\n",
+				intToIPv4(event.SrcIp), ntohs(event.SrcPort),
+				intToIPv4(event.DstIp), ntohs(event.DstPort),
+			)
+
 		case <-ctrlC:
-			fmt.Println("missed", missed)
-			fmt.Println("\nDetaching program and exit")
+			fmt.Println("\nSummary:")
+			fmt.Printf("\t%d Event(s) Received\n", perf.EventsReceived)
+			fmt.Printf("\t%d Event(s) lost (e.g. small buffer, delays in processing)\n", perf.EventsLost)
+			fmt.Println("\nDetaching program and exit...")
 			return
 		}
 	}
@@ -122,26 +126,12 @@ func printBpfInfo(bpf goebpf.System) {
 	fmt.Println()
 }
 
-// Converts IPPROTO number into string for well known protocols
-func getProtoName(proto int) string {
-	switch proto {
-	case syscall.IPPROTO_ENCAP:
-		return "IPPROTO_ENCAP"
-	case syscall.IPPROTO_GRE:
-		return "IPPROTO_GRE"
-	case syscall.IPPROTO_ICMP:
-		return "IPPROTO_ICMP"
-	case syscall.IPPROTO_IGMP:
-		return "IPPROTO_IGMP"
-	case syscall.IPPROTO_IPIP:
-		return "IPPROTO_IPIP"
-	case syscall.IPPROTO_SCTP:
-		return "IPPROTO_SCTP"
-	case syscall.IPPROTO_TCP:
-		return "IPPROTO_TCP"
-	case syscall.IPPROTO_UDP:
-		return "IPPROTO_UDP"
-	default:
-		return fmt.Sprintf("%v", proto)
-	}
+func intToIPv4(ip uint32) net.IP {
+	res := make([]byte, 4)
+	binary.LittleEndian.PutUint32(res, ip)
+	return net.IP(res)
+}
+
+func ntohs(value uint16) uint16 {
+	return ((value & 0xff) << 8) | (value >> 8)
 }
