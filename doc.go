@@ -73,5 +73,51 @@ Once compiled can be used by goebpf in the following way:
 	    fmt.Printf("Drops: %d\n", val)
 	}
 
+PerfEvents
+
+Perf Events (originally Performance Counters for Linux) is powerful kernel instrument for
+tracing, profiling and a lot of other cases like general events to user space.
+
+Usually it is implemented using special eBPF map type "BPF_MAP_TYPE_PERF_EVENT_ARRAY" as
+a container to send events into.
+
+A simple example could be to log all TCP SYN packets into user space from XDP program:
+
+	BPF_MAP_DEF(perfmap) = {
+		.map_type = BPF_MAP_TYPE_PERF_EVENT_ARRAY,
+		.max_entries = 128,  // Up to 128 CPUs
+	};
+	BPF_MAP_ADD(perfmap);
+
+	SEC("xdp")
+	int xdp_dump(struct xdp_md *ctx) {
+		// ...
+		if (tcp->syn) {
+			// Log event to user space
+			bpf_perf_event_output(ctx, &perfmap, BPF_F_CURRENT_CPU, &evt, sizeof(evt));
+		}
+	}
+
+
+	bpf := goebpf.NewDefaultEbpfSystem()
+	bpf.LoadElf("xdp.elf")
+	program := bpf.GetProgramByName("xdp_dump") // name matches function name in C
+	err = program.Load() // Load program into kernel
+	err = program.Attach("eth0") // Attach to interface
+	defer program.Detach()
+
+	// Start listening to Perf Events
+	perf, err := goebpf.NewPerfEvents(perfmap)
+	// 4096 is ring buffer size
+	perfEvents, err := perf.StartForAllProcessesAndCPUs(4096)
+	defer perf.Stop()
+
+	for {
+		switch {
+			case eventData := <-perfEvents:
+				fmt.Println(eventData)
+		}
+	}
+
 */
 package goebpf
