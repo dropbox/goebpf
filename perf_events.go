@@ -4,9 +4,16 @@
 package goebpf
 
 /*
+#ifdef __linux__
 #include <linux/perf_event.h>
+#define PERF_EVENT_HEADER_SIZE		(sizeof(struct perf_event_header))
+#else
+// mocks for Mac
+#define PERF_EVENT_HEADER_SIZE		8
+#define PERF_RECORD_SAMPLE			9
+#define PERF_RECORD_LOST			2
+#endif
 
-#define PERF_EVENT_HEADER_SIZE      (sizeof(struct perf_event_header))
 */
 import "C"
 

@@ -5,10 +5,17 @@ package goebpf
 
 /*
 #include <stdint.h>
-#include <linux/perf_event.h>
 #include <poll.h>
 #include <string.h>
 
+#ifdef __linux__
+#include <linux/perf_event.h>
+#else
+// mocks for Mac
+struct perf_event_mmap_page {
+    int data_offset, data_size, data_head, data_tail;
+};
+#endif
 
 static void *shmem_get_ptr(void *shmem)
 {

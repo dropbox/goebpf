@@ -4,11 +4,14 @@
 package goebpf
 
 /*
-#include <linux/perf_event.h>
 #include <poll.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+
+#ifdef __linux__
+#include <linux/perf_event.h>
+#endif
 
 static int perf_events_poll(void *_fds, int cnt, int timeout)
 {

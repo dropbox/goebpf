@@ -6,12 +6,25 @@ package goebpf
 /*
 #include <sys/mman.h>
 #include <unistd.h>
-#include <linux/perf_event.h>
-#include <syscall.h>
 #include <sys/ioctl.h>
 #include <errno.h>
 #include <string.h>
 
+#ifdef __linux__
+#include <syscall.h>
+#include <linux/perf_event.h>
+#else
+// mocks for Mac
+#define PERF_SAMPLE_RAW             1U << 10
+#define PERF_TYPE_SOFTWARE          1
+#define PERF_COUNT_SW_BPF_OUTPUT    10
+#define PERF_EVENT_IOC_DISABLE      0
+#define PERF_EVENT_IOC_ENABLE       1
+#define __NR_perf_event_open        364
+struct perf_event_attr {
+    int type, config, sample_type, wakeup_events;
+};
+#endif
 
 // Opens perf event on given cpu_id and/or pid
 // Returns pmu_fd (processor monitoring unit fd)
