@@ -139,7 +139,7 @@ func (pe *PerfEvents) startLoop() {
 }
 
 func (pe *PerfEvents) loop() {
-	// Setup poller
+	// Setup poller to poll all handlers (one handler per CPU)
 	poller := newPerfEventPoller()
 	for _, handler := range pe.handlers {
 		poller.Add(handler)
@@ -152,6 +152,7 @@ func (pe *PerfEvents) loop() {
 		pe.wg.Done()
 	}()
 
+	// Wait until at least one perf event fd becomes readable (has new data)
 	for {
 		select {
 		case handler := <-pollerCh:
@@ -173,8 +174,7 @@ func (pe *PerfEvents) handlePerfEvent(handler *perfEventHandler) {
 		)
 		binary.Read(reader, binary.LittleEndian, &header)
 
-		// Read PerfEvent data
-		// header.Size means total size of event: header + data
+		// Read PerfEvent data (header.Size is total size of event: header + data)
 		data := handler.ringBuffer.Read(
 			int(header.Size - C.PERF_EVENT_HEADER_SIZE),
 		)
@@ -182,21 +182,21 @@ func (pe *PerfEvents) handlePerfEvent(handler *perfEventHandler) {
 		// Process event
 		switch header.Type {
 		case C.PERF_RECORD_SAMPLE:
-			// PerfEvent Sample. It is defined as
+			// Sample defined as:
 			//     struct perf_event_sample {
 			//         struct perf_event_header header;
 			//         uint32_t data_size;
 			//         char data[];
 			//     };
-			// We've already parsed header, so parse only data_size and data itself.
+			// We've already parsed header, so parse only data_size
 			dataSize := binary.LittleEndian.Uint32(data)
 			// Send data into channel
 			pe.updatesChannel <- data[4 : dataSize+4]
 			pe.EventsReceived++
 
 		case C.PERF_RECORD_LOST:
-			// This is special record type - contains how many perf events
-			// lost due to small buffer or slow event processing
+			// This is special record type - contains how many record (events)
+			// lost due to small buffer or slow event processing.
 			var lost perfEventLost
 			reader := bytes.NewReader(data)
 			binary.Read(reader, binary.LittleEndian, &lost)
@@ -207,5 +207,7 @@ func (pe *PerfEvents) handlePerfEvent(handler *perfEventHandler) {
 		}
 	}
 
+	// This is ring buffer: move tail forward to indicate
+	// that we've processed some data
 	handler.ringBuffer.UpdateTail()
 }

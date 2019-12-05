@@ -9,10 +9,6 @@ package goebpf
 #include <string.h>
 #include <stdio.h>
 
-#ifdef __linux__
-#include <linux/perf_event.h>
-#endif
-
 static int perf_events_poll(void *_fds, int cnt, int timeout)
 {
     int *fds = _fds;
@@ -23,7 +19,7 @@ static int perf_events_poll(void *_fds, int cnt, int timeout)
     void *pollfds_memory = malloc(pollfds_size);
     memset(pollfds_memory, 0, pollfds_size);
 
-    // Initialize pollfds from GO array of uint32 contains fds
+    // Initialize pollfds from GO array of uint32 fds
     struct pollfd *pollfds = pollfds_memory;
     for (; fds != fds_end; fds++, pollfds++) {
         pollfds->fd = *fds;
@@ -35,7 +31,7 @@ static int perf_events_poll(void *_fds, int cnt, int timeout)
 
     int ready_cnt = poll(pollfds, cnt, timeout);
 
-    // Copy all ready descriptors back into golang array of uint32 _fds
+    // Copy all ready descriptors back into golang array of uint32s
     for (int remain = ready_cnt; remain > 0; pollfds++) {
         if (pollfds->revents & POLLIN) {
             *fds = pollfds->fd;

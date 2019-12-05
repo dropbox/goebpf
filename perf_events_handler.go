@@ -93,7 +93,7 @@ type perfEventHandler struct {
 }
 
 // newPerfEventHandler opens perf_event on given CPU / PID
-// it also mmap memory of bufferSize to new perf event.
+// it also mmap memory of bufferSize to new perf event fd.
 func newPerfEventHandler(cpu, pid int, bufferSize int) (*perfEventHandler, error) {
 	var errorBuf [errCodeBufferSize]byte
 
@@ -129,7 +129,7 @@ func newPerfEventHandler(cpu, pid int, bufferSize int) (*perfEventHandler, error
 	return res, nil
 }
 
-// Enable enables perf events on this CPU
+// Enable enables perf events on this fd
 func (pe *perfEventHandler) Enable() error {
 	var errorBuf [errCodeBufferSize]byte
 
@@ -145,7 +145,7 @@ func (pe *perfEventHandler) Enable() error {
 	return nil
 }
 
-// Disable disables perf events on this CPU
+// Disable disables perf events on this fd
 func (pe *perfEventHandler) Disable() {
 	if pe.pmuFd > 0 {
 		C.perf_event_disable(pe.pmuFd)
@@ -153,8 +153,9 @@ func (pe *perfEventHandler) Disable() {
 	}
 }
 
-// Release releases allocated resources: closes perf_event_fd
-// and unmaps shared memory
+// Release releases allocated resources:
+// - close perf_event fd
+// - unmap shared memory
 func (pe *perfEventHandler) Release() {
 	pe.Disable()
 
@@ -169,7 +170,9 @@ func (pe *perfEventHandler) Release() {
 	}
 }
 
-// Helper to calculate aligned memory size for mmap
+// Helper to calculate aligned memory size for mmap.
+// First memory page is reserved for mmap metadata,
+// so allocating +1 page.
 func calculateMmapSize(size int) int {
 	pageSize := int(C.getpagesize())
 	pageCnt := size / pageSize
