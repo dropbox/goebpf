@@ -384,16 +384,17 @@ func (m *EbpfMap) isPerCpu() bool {
 func (m *EbpfMap) Create() error {
 	var logBuf [errCodeBufferSize]byte
 
-	// These special map types always have 4 byte value
+	// These special map types always have 4 bytes length value
 	if m.Type == MapTypeArrayOfMaps || m.Type == MapTypeHashOfMaps ||
-		m.Type == MapTypeProgArray {
+		m.Type == MapTypeProgArray || m.Type == MapTypePerfEventArray {
 
 		m.ValueSize = 4
 	}
 
 	// Array's key must always be 4 bytes
 	if m.Type == MapTypeArray || m.Type == MapTypePerCPUArray ||
-		m.Type == MapTypeArrayOfMaps || m.Type == MapTypeProgArray {
+		m.Type == MapTypeArrayOfMaps || m.Type == MapTypeProgArray ||
+		m.Type == MapTypePerfEventArray {
 
 		if m.KeySize > 4 {
 			return fmt.Errorf("Invalid map '%s' key size(%d), must be 4 bytes", m.Name, m.KeySize)
