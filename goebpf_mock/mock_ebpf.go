@@ -11,6 +11,9 @@ import (
 type MockSystem struct {
 	Programs map[string]goebpf.Program
 	Maps     map[string]goebpf.Map
+
+	// ErrorLoadElf specifies return value for LoadElf() method.
+	ErrorLoadElf error
 }
 
 // NewMockSystem creates mocked eBPF system with:
@@ -25,7 +28,7 @@ func NewMockSystem() *MockSystem {
 
 // LoadElf does nothing, just a mock for original LoadElf
 func (m *MockSystem) LoadElf(fn string) error {
-	return nil
+	return m.ErrorLoadElf
 }
 
 // GetMaps returns all linked eBPF maps
