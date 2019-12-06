@@ -113,7 +113,7 @@ A simple example could be to log all TCP SYN packets into user space from XDP pr
 	defer perf.Stop()
 
 	for {
-		switch {
+		select {
 			case eventData := <-perfEvents:
 				fmt.Println(eventData)
 		}

@@ -73,7 +73,7 @@ And the `go` part:
     defer perf.Stop()
 
     for {
-        switch {
+        select {
             case data := <-perfEvents:
                 fmt.Println(data)
         }
