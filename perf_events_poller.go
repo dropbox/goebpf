@@ -21,6 +21,7 @@ static int perf_events_poll(void *_fds, int cnt, int timeout)
 
     // Initialize pollfds from GO array of uint32 fds
     struct pollfd *pollfds = pollfds_memory;
+    struct pollfd *pollfds_end = pollfds + cnt;
     for (; fds != fds_end; fds++, pollfds++) {
         pollfds->fd = *fds;
         pollfds->events = POLLIN;
@@ -32,7 +33,7 @@ static int perf_events_poll(void *_fds, int cnt, int timeout)
     int ready_cnt = poll(pollfds, cnt, timeout);
 
     // Copy all ready descriptors back into golang array of uint32s
-    for (int remain = ready_cnt; remain > 0; pollfds++) {
+    for (int remain = ready_cnt; remain > 0 && pollfds != pollfds_end; pollfds++) {
         if (pollfds->revents & POLLIN) {
             *fds = pollfds->fd;
             fds++;
@@ -57,7 +58,7 @@ type perfEventPoller struct {
 	fds       []uint32
 	timeoutMs int
 
-	stopChannel   chan bool
+	stopChannel   chan struct{}
 	updateChannel chan *perfEventHandler
 }
 
@@ -82,7 +83,7 @@ func (p *perfEventPoller) Start(timeoutMs int) <-chan *perfEventHandler {
 
 	// Start poll loop
 	p.timeoutMs = timeoutMs
-	p.stopChannel = make(chan bool)
+	p.stopChannel = make(chan struct{})
 	p.updateChannel = make(chan *perfEventHandler)
 	p.wg.Add(1)
 

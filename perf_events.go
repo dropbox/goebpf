@@ -37,7 +37,7 @@ type PerfEvents struct {
 
 	perfMap        Map
 	updatesChannel chan []byte
-	stopChannel    chan bool
+	stopChannel    chan struct{}
 	wg             sync.WaitGroup
 
 	handlers []*perfEventHandler
@@ -91,7 +91,7 @@ func (pe *PerfEvents) StartForAllProcessesAndCPUs(bufferSize int) (<-chan []byte
 	}
 
 	// Create perfEvent handler for all possible CPUs
-	pe.handlers = nil
+	pe.handlers = make([]*perfEventHandler, nCpus)
 	for cpu := 0; cpu < nCpus; cpu++ {
 		handler, err := newPerfEventHandler(cpu, -1, bufferSize) // All processes
 		if err != nil {
@@ -104,12 +104,14 @@ func (pe *PerfEvents) StartForAllProcessesAndCPUs(bufferSize int) (<-chan []byte
 			break
 		}
 		handler.Enable()
-		pe.handlers = append(pe.handlers, handler)
+		pe.handlers[cpu] = handler
 	}
 	// Handle loop errors: release allocated resources / return error
 	if err != nil {
 		for _, handler := range pe.handlers {
-			handler.Release()
+			if handler != nil {
+				handler.Release()
+			}
 		}
 		return nil, err
 	}
@@ -131,7 +133,7 @@ func (pe *PerfEvents) Stop() {
 }
 
 func (pe *PerfEvents) startLoop() {
-	pe.stopChannel = make(chan bool)
+	pe.stopChannel = make(chan struct{})
 	pe.updatesChannel = make(chan []byte)
 	pe.wg.Add(1)
 
