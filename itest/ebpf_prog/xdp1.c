@@ -47,6 +47,12 @@ BPF_MAP_DEF(array_map) = {
 };
 BPF_MAP_ADD(array_map);
 
+BPF_MAP_DEF(perf_map) = {
+    .map_type = BPF_MAP_TYPE_PERF_EVENT_ARRAY,
+    .max_entries = 128,
+};
+BPF_MAP_ADD(perfmap);
+
 #define PROG_CNT 2
 BPF_MAP_DEF(programs) = {
     .map_type = BPF_MAP_TYPE_PROG_ARRAY, .max_entries = PROG_CNT,
@@ -115,4 +121,14 @@ int xdp_root3(struct xdp_md *ctx) {
   return XDP_DROP;
 }
 
-char _license[] SEC("license") = "GPLv2";
+SEC("xdp")
+int xdp_perf(struct xdp_md *ctx) {
+  // Simple program that just emits perf event with packet size.
+  __u32 packet_size = ctx->data_end - ctx->data;
+  // Uncomment once support for Perf Events added
+  // bpf_perf_event_output(ctx, &perf_map, BPF_F_CURRENT_CPU, &packet_size, sizeof(packet_size));
+
+  return XDP_PASS;
+}
+
+char _license[] SEC("license") = "GPL";

@@ -14,7 +14,8 @@ import (
 
 const (
 	testProgramFilename = "ebpf_prog/xdp1.elf"
-	programsAmount      = 4
+	programsCount       = 5
+	mapsCount           = 7
 )
 
 type xdpTestSuite struct {
@@ -35,7 +36,7 @@ func (ts *xdpTestSuite) TestElfLoad() {
 
 	// There should be 6 BPF maps recognized by loader
 	maps := eb.GetMaps()
-	ts.Equal(6, len(maps))
+	ts.Require().Equal(mapsCount, len(maps))
 
 	txcnt := maps["txcnt"].(*goebpf.EbpfMap)
 	ts.NotEqual(0, txcnt.GetFd())
@@ -68,7 +69,7 @@ func (ts *xdpTestSuite) TestElfLoad() {
 	ts.Equal("/sys/fs/bpf/match_maps_rx", mofrxcnt.PersistentPath)
 
 	progmap := eb.GetMapByName("programs").(*goebpf.EbpfMap)
-	ts.NotNil(progmap)
+	ts.Require().NotNil(progmap)
 	ts.NotEqual(0, progmap.GetFd())
 	ts.Equal(goebpf.MapTypeProgArray, progmap.Type)
 	ts.Equal(4, progmap.KeySize)
@@ -76,66 +77,63 @@ func (ts *xdpTestSuite) TestElfLoad() {
 	ts.Equal(2, progmap.MaxEntries)
 
 	// Non existing map
-	nemap := eb.GetMapByName("something")
-	ts.Nil(nemap)
+	ts.Nil(eb.GetMapByName("something"))
 
 	// Also there should few XDP eBPF programs recognized
-	ts.Equal(programsAmount, len(eb.GetPrograms()))
+	ts.Require().Equal(programsCount, len(eb.GetPrograms()))
 
 	// Check that everything loaded correctly / load program into kernel
-	var progs [programsAmount]goebpf.Program
-	for index, name := range []string{"xdp0", "xdp1", "xdp_head_meta2", "xdp_root3"} {
+	for name, program := range eb.GetPrograms() {
 		// Check params
-		p := eb.GetProgramByName(name)
-		ts.Equal(goebpf.ProgramTypeXdp, p.GetType())
-		ts.Equal(name, p.GetName())
-		ts.Equal("GPLv2", p.GetLicense())
+		ts.Equal(goebpf.ProgramTypeXdp, program.GetType())
+		ts.Equal(name, program.GetName())
+		ts.Equal("GPL", program.GetLicense())
 		// Load into kernel
-		err = p.Load()
-		ts.NoError(err)
-		ts.NotEqual(0, p.GetFd())
-		progs[index] = p
+		err = program.Load()
+		ts.Require().NoError(err)
+		ts.Require().NotEqual(0, program.GetFd())
 	}
 
 	// Try to pin program into some filesystem
+	xdp0 := eb.GetProgramByName("xdp0")
 	path := bpfPath + "/xdp_pin_test"
-	err = progs[0].Pin(path)
+	err = xdp0.Pin(path)
 	ts.NoError(err)
 	ts.FileExists(path)
 	os.Remove(path)
 
 	// Non existing program
-	nep := eb.GetProgramByName("something")
-	ts.Nil(nep)
+	ts.Nil(eb.GetProgramByName("something"))
 
 	// Additional test for special map type - PROGS_ARRAY
 	// To be sure that we can insert prog_fd into map
-	err = progmap.Update(0, progs[0].GetFd())
+	xdp1 := eb.GetProgramByName("xdp1")
+	err = progmap.Update(0, xdp0.GetFd())
 	ts.NoError(err)
-	err = progmap.Update(1, progs[1].GetFd())
+	err = progmap.Update(1, xdp1.GetFd())
 	ts.NoError(err)
 
 	// Attach program to first (lo) interface
 	// P.S. XDP does not work on "lo" interface, however, you can still attach program to it
 	// which is enough to test basic BPF functionality
-	err = progs[0].Attach("lo")
+	err = xdp0.Attach("lo")
 	ts.NoError(err)
 	// Detach program
-	err = progs[0].Detach()
+	err = xdp0.Detach()
 	ts.NoError(err)
 
-	// Unload programs (not required for real case)
-	for _, p := range progs {
-		err = p.Close()
+	// Unload programs (not required for real use case)
+	for _, program := range eb.GetPrograms() {
+		err = program.Close()
 		ts.NoError(err)
 	}
 
 	// Negative: close already closed program
-	err = progs[0].Close()
+	err = xdp0.Close()
 	ts.Error(err)
 
 	// Negative: attach to non existing interface
-	err = progs[0].Attach("dummyiface")
+	err = xdp0.Attach("dummyiface")
 	ts.Error(err)
 }
 
@@ -143,13 +141,10 @@ func (ts *xdpTestSuite) TestProgramInfo() {
 	// Load test program, don't attach (not required to get info)
 	eb := goebpf.NewDefaultEbpfSystem()
 	err := eb.LoadElf(testProgramFilename)
-	ts.NoError(err)
-	if err != nil {
-		ts.FailNowf("Unable to read %s", testProgramFilename)
-	}
+	ts.Require().NoError(err)
 	prog := eb.GetProgramByName("xdp0")
 	err = prog.Load()
-	ts.NoError(err)
+	ts.Require().NoError(err)
 
 	// Get program info by FD (NOT ID, since this program is ours)
 	info, err := goebpf.GetProgramInfoByFd(prog.GetFd())
