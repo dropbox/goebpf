@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 
 	"golang.org/x/sys/unix"
@@ -22,8 +23,7 @@ const (
 	LicenseSectionName = "license"
 
 	// Length of BPF instruction
-	bpfInstructionLen  = 8
-	bpfMaxInstructions = 4094
+	bpfInstructionLen = 8
 	// Other BPF constants that are not present in "golang.org/x/sys/unix"
 	bpfDw          = 0x18 // ld/ldx double word
 	bpfPseudoMapFd = 1    // pseudo map fd (to be replaced with actual fd)
@@ -345,24 +345,28 @@ func loadPrograms(elfFile *elf.File, maps map[string]Map) (map[string]Program, e
 			}
 		}
 
-		// One section may contain multiple programs
-		// Cut section's bytecode into programs based on symbols information
+		// One section may contain multiple programs.
+		// Find all programs and their offsets from symbols table, then
+		// reverse sort them by offset (since order is not guaranteed!)
+		offsetToNameMap := map[int]string{}
+		offsetToNameKeys := []int{} // For keys sort
+		for _, symbol := range symbols {
+			if int(symbol.Section) == sectionIndex && elf.ST_BIND(symbol.Info) == elf.STB_GLOBAL {
+				key := int(symbol.Value)
+				offsetToNameMap[key] = symbol.Name
+				offsetToNameKeys = append(offsetToNameKeys, key)
+			}
+			// Skip others
+		}
+
+		// Slice eBPF programs by reverse sorted offsets from symbol table
+		sort.Sort(sort.Reverse(sort.IntSlice(offsetToNameKeys)))
 		lastOffset := len(bytecode)
-		for i := len(symbols) - 1; i >= 0; i-- {
-			// Skip symbols which are either:
-			// 1. non GLOBAL binded
-			// 2. Don't belong to current section
-			symbol := &symbols[i]
-			if int(symbol.Section) != sectionIndex || elf.ST_BIND(symbol.Info) != elf.STB_GLOBAL {
-				continue
-			}
-			offset := int(symbol.Value)
+		for _, offset := range offsetToNameKeys {
+			name := offsetToNameMap[offset]
 			size := lastOffset - offset
-			if size/bpfInstructionLen > bpfMaxInstructions {
-				return nil, fmt.Errorf("eBPF program '%s' too big", symbol.Name)
-			}
-			// Create program with type based on section name
-			result[symbol.Name] = createProgram(symbol.Name, license, bytecode[offset:offset+size])
+			// Create Program instance with type based on section name (e.g. XDP)
+			result[name] = createProgram(name, license, bytecode[offset:offset+size])
 			lastOffset = offset
 		}
 	}
