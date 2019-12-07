@@ -347,7 +347,7 @@ func loadPrograms(elfFile *elf.File, maps map[string]Map) (map[string]Program, e
 		}
 
 		// One section may contain multiple programs.
-		// Find all programs and it offsets from symbols table, then
+		// Find all programs and their offsets from symbols table, then
 		// reverse sort them by offset (since order is not guaranteed!)
 		offsetToNameMap := map[int]string{}
 		offsetToNameKeys := []int{} // For keys sort
@@ -366,10 +366,6 @@ func loadPrograms(elfFile *elf.File, maps map[string]Map) (map[string]Program, e
 		for _, offset := range offsetToNameKeys {
 			name := offsetToNameMap[offset]
 			size := lastOffset - offset
-			// Check program size
-			if size/bpfInstructionLen > bpfMaxInstructions {
-				return nil, fmt.Errorf("eBPF program '%s' too big (%d)", name, size)
-			}
 			// Create Program instance with type based on section name (e.g. XDP)
 			result[name] = createProgram(name, license, bytecode[offset:offset+size])
 			lastOffset = offset
