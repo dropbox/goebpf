@@ -24,7 +24,6 @@ const (
 
 	// Length of BPF instruction
 	bpfInstructionLen  = 8
-	bpfMaxInstructions = 4094
 	// Other BPF constants that are not present in "golang.org/x/sys/unix"
 	bpfDw          = 0x18 // ld/ldx double word
 	bpfPseudoMapFd = 1    // pseudo map fd (to be replaced with actual fd)
