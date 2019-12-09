@@ -24,7 +24,7 @@ import (
 	"sync"
 )
 
-// PerfEvent is a way to interact with Linux's PerfEvents for eBPF case.
+// PerfEvents is a way to interact with Linux's PerfEvents for eBPF cases.
 type PerfEvents struct {
 	// Statistics
 	EventsReceived   int

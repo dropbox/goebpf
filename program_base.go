@@ -164,6 +164,9 @@ func (prog *BaseProgram) Close() error {
 	return nil
 }
 
+// Pin saves ("pins") file description into special file on filesystem
+// so it can be accessed from other processes.
+// WARNING: destination filesystem must be mounted as "bpf" (mount -t bpf)
 func (prog *BaseProgram) Pin(path string) error {
 	return ebpfObjPin(prog.fd, path)
 }
