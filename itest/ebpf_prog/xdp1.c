@@ -1,7 +1,7 @@
 // Copyright (c) 2019 Dropbox, Inc.
 // Full license can be found in the LICENSE file.
 
-// Very simple XDP program for eBPF library integration tests
+// Set of simple XDP programs for eBPF library integration tests
 
 #include "bpf_helpers.h"
 
@@ -51,7 +51,7 @@ BPF_MAP_DEF(perf_map) = {
     .map_type = BPF_MAP_TYPE_PERF_EVENT_ARRAY,
     .max_entries = 128,
 };
-BPF_MAP_ADD(perfmap);
+BPF_MAP_ADD(perf_map);
 
 #define PROG_CNT 2
 BPF_MAP_DEF(programs) = {
@@ -125,8 +125,8 @@ SEC("xdp")
 int xdp_perf(struct xdp_md *ctx) {
   // Simple program that just emits perf event with packet size.
   __u32 packet_size = ctx->data_end - ctx->data;
-  // Uncomment once support for Perf Events added
-  // bpf_perf_event_output(ctx, &perf_map, BPF_F_CURRENT_CPU, &packet_size, sizeof(packet_size));
+
+  bpf_perf_event_output(ctx, &perf_map, BPF_F_CURRENT_CPU, &packet_size, sizeof(packet_size));
 
   return XDP_PASS;
 }
