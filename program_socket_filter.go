@@ -14,6 +14,8 @@ import (
 
 // SocketFilterResult is eBPF program return code enum
 type SocketFilterResult int
+
+// SocketFilterAttachType is either SO_ATTACH_BPF or SO_ATTACH_REUSEPORT_EBPF
 type SocketFilterAttachType int
 
 const (
