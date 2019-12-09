@@ -17,6 +17,7 @@ import (
 type XdpResult int
 
 const (
+	// XDP program return codes
 	XdpAborted  XdpResult = C.XDP_ABORTED
 	XdpDrop     XdpResult = C.XDP_DROP
 	XdpPass     XdpResult = C.XDP_PASS

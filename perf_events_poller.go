@@ -76,7 +76,7 @@ func (p *perfEventPoller) Start(timeoutMs int) <-chan *perfEventHandler {
 	// Create array of uint32 for fds to be used from C function
 	p.fds = make([]uint32, len(p.items))
 	var idx int
-	for fd, _ := range p.items {
+	for fd := range p.items {
 		p.fds[idx] = uint32(fd)
 		idx++
 	}
