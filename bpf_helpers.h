@@ -55,6 +55,12 @@ enum bpf_map_type {
 #define BPF_EXIST   2 /* update existing element */
 #define BPF_F_LOCK  4 /* spin_lock-ed map_lookup/map_update */
 
+/* BPF_FUNC_perf_event_output, BPF_FUNC_perf_event_read and
+ * BPF_FUNC_perf_event_read_value flags.
+ */
+#define BPF_F_INDEX_MASK    0xffffffffULL
+#define BPF_F_CURRENT_CPU   BPF_F_INDEX_MASK
+
 // A helper structure used by eBPF C program
 // to describe map attributes to BPF program loader
 struct bpf_map_def {

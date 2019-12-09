@@ -384,16 +384,17 @@ func (m *EbpfMap) isPerCpu() bool {
 func (m *EbpfMap) Create() error {
 	var logBuf [errCodeBufferSize]byte
 
-	// These special map types always have 4 byte value
+	// These special map types always have 4 bytes length value
 	if m.Type == MapTypeArrayOfMaps || m.Type == MapTypeHashOfMaps ||
-		m.Type == MapTypeProgArray {
+		m.Type == MapTypeProgArray || m.Type == MapTypePerfEventArray {
 
 		m.ValueSize = 4
 	}
 
 	// Array's key must always be 4 bytes
 	if m.Type == MapTypeArray || m.Type == MapTypePerCPUArray ||
-		m.Type == MapTypeArrayOfMaps || m.Type == MapTypeProgArray {
+		m.Type == MapTypeArrayOfMaps || m.Type == MapTypeProgArray ||
+		m.Type == MapTypePerfEventArray {
 
 		if m.KeySize > 4 {
 			return fmt.Errorf("Invalid map '%s' key size(%d), must be 4 bytes", m.Name, m.KeySize)
@@ -606,8 +607,9 @@ func (m *EbpfMap) LookupUint64(ikey interface{}) (uint64, error) {
 
 // Actual implementation for Insert / Update methods
 func (m *EbpfMap) updateImpl(ikey interface{}, ivalue interface{}, op int) error {
-	// ArrayOfMaps/ProgArray requires BPF_ANY in order to update item for some reason... :(
-	if m.Type == MapTypeArrayOfMaps || m.Type == MapTypeProgArray {
+	// Special maps ArrayOfMaps/ProgArray/PerfEventArray requires BPF_ANY
+	// in order to update item for some reason... :(
+	if m.Type == MapTypeArrayOfMaps || m.Type == MapTypeProgArray || m.Type == MapTypePerfEventArray {
 		op = bpfAny
 	}
 	// Convert key/value into bytes
