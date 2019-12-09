@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"net"
 	"testing"
+	"time"
 
 	"github.com/dropbox/goebpf"
 	"github.com/stretchr/testify/require"
@@ -43,19 +44,33 @@ func TestPerfEvents(t *testing.T) {
 	require.NoError(t, err)
 	conn.Write([]byte("test"))
 
-	// Read Perf Event (contains just packet size, uint32)
-	eventData := <-perfCh
-	packetSize := binary.LittleEndian.Uint32(eventData)
-	require.True(t, packetSize > 20)
-
-	// perfEvents.Stop() maybe blocked if nobody listens for data from channel
+	// Read Perf Events in a separated goroutine
+	var firstEventData []byte
+	doneChan := make(chan struct{})
 	go func() {
 		for {
-			_, ok := <-perfCh
+			data, ok := <-perfCh
+			if doneChan != nil {
+				firstEventData = data
+				close(doneChan)
+				doneChan = nil
+			}
 			if !ok {
 				break
 			}
 		}
 	}()
+
+	// Wait until first perf event (up to 1 sec)
+	select {
+	case <-doneChan:
+		break
+	case <-time.After(1 * time.Second):
+		require.Fail(t, "timeout while waiting for perf event")
+	}
 	perfEvents.Stop()
+
+	// Verify first received event
+	packetSize := binary.LittleEndian.Uint32(firstEventData)
+	require.True(t, packetSize > 20)
 }
