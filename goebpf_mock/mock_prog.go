@@ -38,7 +38,7 @@ func (m *MockProgram) Close() error {
 }
 
 // Attach does nothing, only to implement Program interface
-func (m *MockProgram) Attach(meta string) error {
+func (m *MockProgram) Attach(meta interface{}) error {
 	m.Attached = true
 	return nil
 }
@@ -46,6 +46,11 @@ func (m *MockProgram) Attach(meta string) error {
 // Detach does nothing, only to implement Program interface
 func (m *MockProgram) Detach() error {
 	m.Attached = false
+	return nil
+}
+
+// Pin does nothing, just returns nil
+func (m *MockProgram) Pin(path string) error {
 	return nil
 }
 
