@@ -15,7 +15,7 @@ before_install:
 
 script:
   # Verify for formatting issues
-  - if [ -n "$(gofmt -l .)" ]; then echo "Please fix source formatting by 'go fmt ./...'"; false; fi
+  - if [ -n "$(gofmt -s -l .)" ]; then echo "Please fix source formatting by 'go fmt ./...'"; false; fi
   # Run unit tests
   - go test -v -coverprofile=coverage.txt -covermode=atomic
   - cd goebpf_mock && go test -v -coverprofile=coverage.txt -covermode=atomic
