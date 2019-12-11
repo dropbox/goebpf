@@ -68,12 +68,14 @@ struct perf_event_item {
   __u32 src_ip, dst_ip;
   __u16 src_port, dst_port;
 };
+_Static_assert(sizeof(struct perf_event_item) == 12, "wrong size of perf_event_item");
 
 // XDP program //
 SEC("xdp")
 int xdp_dump(struct xdp_md *ctx) {
   void *data_end = (void *)(long)ctx->data_end;
   void *data = (void *)(long)ctx->data;
+  __u64 packet_size = data_end - data;
 
   // L2
   struct ethhdr *ether = data;
@@ -111,7 +113,19 @@ int xdp_dump(struct xdp_md *ctx) {
       .src_port = tcp->source,
       .dst_port = tcp->dest,
     };
-    bpf_perf_event_output(ctx, &perfmap, BPF_F_CURRENT_CPU, &evt, sizeof(evt));
+    // flags for bpf_perf_event_output() actually contain 2 parts (each 32bit long):
+    //
+    // bits 0-31: either
+    // - Just index in eBPF map
+    // or
+    // - "BPF_F_CURRENT_CPU" kernel will use current CPU_ID as eBPF map index
+    //
+    // bits 32-63: may be used to tell kernel to amend first N bytes
+    // of original packet (ctx) to the end of the data.
+
+    // So total perf event length will be sizeof(evt) + packet_size
+    __u64 flags = BPF_F_CURRENT_CPU | (packet_size << 32);
+    bpf_perf_event_output(ctx, &perfmap, flags, &evt, sizeof(evt));
   }
 
   return XDP_PASS;
