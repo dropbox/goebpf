@@ -83,36 +83,41 @@ func main() {
 	if err != nil {
 		fatalError("perf.StartForAllProcessesAndCPUs(): %v", err)
 	}
-	defer perf.Stop()
 
 	fmt.Println("XDP program successfully loaded and attached.")
 	fmt.Println("All new TCP connection requests (SYN) coming to this host will be dumped here.")
 	fmt.Println()
 
-	var event perfEventItem
-	for {
-		select {
-
-		case eventData := <-perfEvents:
-			reader := bytes.NewReader(eventData)
-			binary.Read(reader, binary.LittleEndian, &event)
-			fmt.Printf("TCP SYN: %v:%d -> %v:%d\n",
-				intToIPv4(event.SrcIp), ntohs(event.SrcPort),
-				intToIPv4(event.DstIp), ntohs(event.DstPort),
-			)
-			if len(eventData)-metadataSize > 0 {
-				// event contains packet sample as well
-				fmt.Println(hex.Dump(eventData[metadataSize:]))
+	go func() {
+		var event perfEventItem
+		for {
+			if eventData, ok := <-perfEvents; ok {
+				reader := bytes.NewReader(eventData)
+				binary.Read(reader, binary.LittleEndian, &event)
+				fmt.Printf("TCP: %v:%d -> %v:%d\n",
+					intToIPv4(event.SrcIp), ntohs(event.SrcPort),
+					intToIPv4(event.DstIp), ntohs(event.DstPort),
+				)
+				if len(eventData)-metadataSize > 0 {
+					// event contains packet sample as well
+					fmt.Println(hex.Dump(eventData[metadataSize:]))
+				}
+			} else {
+				// Update channel closed
+				break
 			}
-
-		case <-ctrlC:
-			fmt.Println("\nSummary:")
-			fmt.Printf("\t%d Event(s) Received\n", perf.EventsReceived)
-			fmt.Printf("\t%d Event(s) lost (e.g. small buffer, delays in processing)\n", perf.EventsLost)
-			fmt.Println("\nDetaching program and exit...")
-			return
 		}
-	}
+	}()
+
+	// Wait until Ctrl+C pressed
+	<-ctrlC
+
+	// Stop perf events and print summary
+	perf.Stop()
+	fmt.Println("\nSummary:")
+	fmt.Printf("\t%d Event(s) Received\n", perf.EventsReceived)
+	fmt.Printf("\t%d Event(s) lost (e.g. small buffer, delays in processing)\n", perf.EventsLost)
+	fmt.Println("\nDetaching program and exit...")
 }
 
 func fatalError(format string, args ...interface{}) {
