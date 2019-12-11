@@ -6,6 +6,7 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"net"
@@ -18,6 +19,11 @@ import (
 var iface = flag.String("iface", "", "Interface to bind XDP program to")
 var elf = flag.String("elf", "ebpf_prog/xdp_dump.elf", "clang/llvm compiled binary file")
 var programName = flag.String("program", "xdp_dump", "Name of XDP program (function name)")
+
+const (
+	// Size of structure used to pass metadata
+	metadataSize = 12
+)
 
 // In sync with xdp_dump.c  "struct perf_event_item"
 type perfEventItem struct {
@@ -90,10 +96,14 @@ func main() {
 		case eventData := <-perfEvents:
 			reader := bytes.NewReader(eventData)
 			binary.Read(reader, binary.LittleEndian, &event)
-			fmt.Printf("TCP: %v:%d -> %v:%d\n",
+			fmt.Printf("TCP SYN: %v:%d -> %v:%d\n",
 				intToIPv4(event.SrcIp), ntohs(event.SrcPort),
 				intToIPv4(event.DstIp), ntohs(event.DstPort),
 			)
+			if len(eventData)-metadataSize > 0 {
+				// event contains packet sample as well
+				fmt.Println(hex.Dump(eventData[metadataSize:]))
+			}
 
 		case <-ctrlC:
 			fmt.Println("\nSummary:")
