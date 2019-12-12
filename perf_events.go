@@ -124,7 +124,9 @@ func (pe *PerfEvents) StartForAllProcessesAndCPUs(bufferSize int) (<-chan []byte
 func (pe *PerfEvents) Stop() {
 	// Stop poll loop
 	close(pe.stopChannel)
+	// Wait until poll loop stopped, then close updates channel
 	pe.wg.Wait()
+	close(pe.updatesChannel)
 
 	// Release resources
 	for _, handler := range pe.handlers {

@@ -801,6 +801,11 @@ UNUSED static int bpf_xdp_adjust_head(struct xdp_md *ctx, int offset) {
   return 0;
 }
 
+UNUSED static int bpf_perf_event_output(void *ctx, void *map, __u64 index, void *data, __u32 size)
+{
+  return 0;
+}
+
 #endif  // of other than __BPF__
 
 // Finally make sure that all types have expected size regardless of platform
