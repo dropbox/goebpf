@@ -72,8 +72,16 @@ int firewall(struct xdp_md *ctx) {
     return XDP_ABORTED;
   }
 
+  struct {
+    __u32 prefixlen;
+    __u32 saddr;
+  } key;
+
+  key.prefixlen = 32;
+  key.saddr = ip->saddr;
+
   // Lookup SRC IP in blacklisted IPs
-  __u64 *rule_idx = bpf_map_lookup_elem(&blacklist, &ip->saddr);
+  __u64 *rule_idx = bpf_map_lookup_elem(&blacklist, &key);
   if (rule_idx) {
     // Matched, increase match counter for matched "rule"
     __u32 index = *(__u32*)rule_idx;  // make verifier happy
