@@ -6,12 +6,18 @@ package goebpf
 /*
 #ifdef __linux__
 #include <linux/perf_event.h>
+#include <sys/sysinfo.h>
 #define PERF_EVENT_HEADER_SIZE		(sizeof(struct perf_event_header))
 #else
 // mocks for Mac
 #define PERF_EVENT_HEADER_SIZE		8
 #define PERF_RECORD_SAMPLE			9
 #define PERF_RECORD_LOST			2
+
+int get_nprocs()
+{
+	return 1;
+}
 #endif
 
 */
@@ -84,13 +90,16 @@ func NewPerfEvents(m Map) (*PerfEvents, error) {
 // "bufferSize" is ring buffer size for perfEvents. Per CPU.
 // All updates will be sent into returned channel.
 func (pe *PerfEvents) StartForAllProcessesAndCPUs(bufferSize int) (<-chan []byte, error) {
-	// Get CPU count
-	nCpus, err := GetNumOfPossibleCpus()
-	if err != nil {
-		return nil, err
-	}
+	// Get ONLINE CPU count.
+	// There maybe confusion between get_nprocs() and GetNumOfPossibleCpus() functions:
+	// - get_nprocs() returns ONLINE CPUs
+	// - GetNumOfPossibleCpus() returns POSSIBLE (including currently offline) CPUs
+	// So space for eBPF maps should be reserved for ALL possible CPUs,
+	// but perfEvents may work only on online CPUs
+	nCpus := int(C.get_nprocs())
 
 	// Create perfEvent handler for all possible CPUs
+	var err error
 	pe.handlers = make([]*perfEventHandler, nCpus)
 	for cpu := 0; cpu < nCpus; cpu++ {
 		handler, err := newPerfEventHandler(cpu, -1, bufferSize) // All processes
