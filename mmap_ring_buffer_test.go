@@ -42,13 +42,12 @@ func TestRingBuffer(t *testing.T) {
 // Helper to construct ringBuffer from go array
 func ringBufferFromArray(array []byte) *mmapRingBuffer {
 	ptr := unsafe.Pointer(&array[0])
-	start := uintptr(ptr)
 	size := len(array)
 
 	return &mmapRingBuffer{
 		ptr:   ptr,
-		start: start,
+		start: ptr,
 		size:  size,
-		end:   start + uintptr(size),
+		end:   uintptr(ptr) + uintptr(size),
 	}
 }
