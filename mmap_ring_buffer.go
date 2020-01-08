@@ -67,7 +67,7 @@ import (
 
 type mmapRingBuffer struct {
 	ptr   unsafe.Pointer
-	start uintptr
+	start unsafe.Pointer
 	end   uintptr
 	size  int
 
@@ -78,14 +78,14 @@ type mmapRingBuffer struct {
 // NewMmapRingBuffer creates mmapRingBuffer instance from
 // pre-created mmap memory pointer ptr
 func NewMmapRingBuffer(ptr unsafe.Pointer) *mmapRingBuffer {
-	start := uintptr(C.shmem_get_ptr(ptr))
+	start := C.shmem_get_ptr(ptr)
 	size := int(C.shmem_get_size(ptr))
 
 	res := &mmapRingBuffer{
 		ptr:   ptr,
 		start: start,
 		size:  size,
-		end:   start + uintptr(size),
+		end:   uintptr(start) + uintptr(size),
 		tail:  int(C.shmem_get_tail(ptr)),
 	}
 
@@ -99,28 +99,28 @@ func (b *mmapRingBuffer) Read(size int) []byte {
 	}
 
 	res := make([]byte, size)
-	tailPtr := b.start + uintptr(b.tail%b.size)
+	tailPtr := unsafe.Pointer(uintptr(b.start) + uintptr(b.tail%b.size))
 
-	if tailPtr+uintptr(size) > b.end {
+	if uintptr(tailPtr)+uintptr(size) > b.end {
 		// Requested size requires buffer rollover
 		// [------------------------T-]
 		// e.g. requested 3 bytes, but current tail is just 2 bytes away from
 		// the buffer end.
 		// So read 2 bytes and 1 byte from the beginning
-		consumed := int(b.end - tailPtr)
+		consumed := int(b.end - uintptr(tailPtr))
 		C.shmem_memcpy(
-			unsafe.Pointer(tailPtr),
+			tailPtr,
 			unsafe.Pointer(&res[0]),
 			C.size_t(consumed),
 		)
 		C.shmem_memcpy(
-			unsafe.Pointer(b.start),
+			b.start,
 			unsafe.Pointer(&res[consumed]),
 			C.size_t(size-consumed),
 		)
 	} else {
 		C.shmem_memcpy(
-			unsafe.Pointer(tailPtr),
+			tailPtr,
 			unsafe.Pointer(&res[0]),
 			C.size_t(size),
 		)
