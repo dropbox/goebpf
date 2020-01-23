@@ -29,6 +29,9 @@ const (
 type XdpAttachMode int
 
 const (
+	// XdpAttachModeNone supposed to be "best effort" - automatically selects better mode.
+	// However, it seems does not work at least with kernel 4.15
+	XdpAttachModeNone XdpAttachMode = 0
 	// XdpAttachModeDrv is native, driver mode (support from driver side required)
 	XdpAttachModeDrv XdpAttachMode = 1
 	// XdpAttachModeSkb is "generic", kernel mode, less performant as comparing to native
@@ -90,7 +93,7 @@ func newXdpProgram(name, license string, bytecode []byte) Program {
 //    })
 func (p *xdpProgram) Attach(data interface{}) error {
 	var ifaceName string
-	var attachMode = XdpAttachModeDrv
+	var attachMode = XdpAttachModeNone
 
 	switch x := data.(type) {
 	case string:
