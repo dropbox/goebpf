@@ -112,13 +112,26 @@ func (ts *xdpTestSuite) TestElfLoad() {
 	ts.NoError(err)
 	err = progmap.Update(1, xdp1.GetFd())
 	ts.NoError(err)
+	// And delete from it
+	err = progmap.Delete(0)
+	ts.NoError(err)
+	err = progmap.Delete(1)
+	ts.NoError(err)
 
 	// Attach program to first (lo) interface
 	// P.S. XDP does not work on "lo" interface, however, you can still attach program to it
 	// which is enough to test basic BPF functionality
 	err = xdp0.Attach("lo")
+	ts.Require().NoError(err)
+	err = xdp0.Detach()
 	ts.NoError(err)
-	// Detach program
+
+	// Attach with parameters
+	err = xdp0.Attach(&goebpf.XdpAttachParams{
+		Interface: "lo",
+		Mode:      goebpf.XdpAttachModeSkb,
+	})
+	ts.Require().NoError(err)
 	err = xdp0.Detach()
 	ts.NoError(err)
 

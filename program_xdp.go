@@ -16,14 +16,36 @@ import (
 // XdpResult is eBPF program return code enum
 type XdpResult int
 
+// XDP program return codes
 const (
-	// XDP program return codes
 	XdpAborted  XdpResult = C.XDP_ABORTED
 	XdpDrop     XdpResult = C.XDP_DROP
 	XdpPass     XdpResult = C.XDP_PASS
 	XdpTx       XdpResult = C.XDP_TX
 	XdpRedirect XdpResult = C.XDP_REDIRECT
 )
+
+// XdpAttachMode selects a way how XDP program will be attached to interface
+type XdpAttachMode int
+
+const (
+	// XdpAttachModeNone stands for "best effort" - kernel automatically
+	// selects best mode (would try Drv first, then fallback to Generic).
+	// NOTE: Kernel will not fallback to Generic XDP if NIC driver failed
+	//       to install XDP program.
+	XdpAttachModeNone XdpAttachMode = 0
+	// XdpAttachModeDrv is native, driver mode (support from driver side required)
+	XdpAttachModeDrv XdpAttachMode = 1
+	// XdpAttachModeSkb is "generic", kernel mode, less performant comparing to native,
+	// but does not requires driver support.
+	XdpAttachModeSkb XdpAttachMode = 2
+)
+
+// XdpAttachParams used to pass parameters to Attach() call.
+type XdpAttachParams struct {
+	Interface string
+	Mode      XdpAttachMode
+}
 
 func (t XdpResult) String() string {
 	switch t {
@@ -46,8 +68,9 @@ func (t XdpResult) String() string {
 type xdpProgram struct {
 	BaseProgram
 
-	// Name of interface where XDP program attached to.
+	// Interface name and attach mode
 	ifname string
+	mode   XdpAttachMode
 }
 
 func newXdpProgram(name, license string, bytecode []byte) Program {
@@ -61,41 +84,63 @@ func newXdpProgram(name, license string, bytecode []byte) Program {
 	}
 }
 
+// Attach attaches eBPF(XDP) program to network interface.
+// There are 2 possible ways to do that:
+//
+// 1. Pass interface name as parameter, e.g.
+//    xdpProgram.Attach("eth0")
+//
+// 2. Using XdpAttachParams structure:
+//    xdpProgram.Attach(
+//			&XdpAttachParams{Mode: XdpAttachModeSkb, Interface: "eth0"
+//    })
 func (p *xdpProgram) Attach(data interface{}) error {
-	ifname, ok := data.(string)
-	if !ok {
-		return fmt.Errorf("Interface name as string expected, got %T", data)
+	var ifaceName string
+	var attachMode = XdpAttachModeNone
+
+	switch x := data.(type) {
+	case string:
+		ifaceName = x
+	case *XdpAttachParams:
+		ifaceName = x.Interface
+		attachMode = x.Mode
+	default:
+		return fmt.Errorf("%T is not supported for Attach()", data)
 	}
+
 	// Lookup interface by given name, we need to extract iface index
-	iface, err := netlink.LinkByName(ifname)
+	link, err := netlink.LinkByName(ifaceName)
 	if err != nil {
 		// Most likely no such interface
 		return fmt.Errorf("LinkByName() failed: %v", err)
 	}
 
-	err = netlink.LinkSetXdpFd(iface, p.fd)
-	if err != nil {
+	// Attach program
+	if err := netlink.LinkSetXdpFdWithFlags(link, p.fd, int(attachMode)); err != nil {
 		return fmt.Errorf("LinkSetXdpFd() failed: %v", err)
 	}
-	p.ifname = ifname
+
+	p.ifname = ifaceName
+	p.mode = attachMode
 
 	return nil
 }
 
+// Detach detaches program from network interface
+// Must be previously attached by Attach() call.
 func (p *xdpProgram) Detach() error {
 	if p.ifname == "" {
 		return errors.New("Program isn't attached")
 	}
 	// Lookup interface by given name, we need to extract iface index
-	iface, err := netlink.LinkByName(p.ifname)
+	link, err := netlink.LinkByName(p.ifname)
 	if err != nil {
 		// Most likely no such interface
 		return fmt.Errorf("LinkByName() failed: %v", err)
 	}
 
 	// Setting eBPF program with FD -1 actually removes it from interface
-	err = netlink.LinkSetXdpFd(iface, -1)
-	if err != nil {
+	if err := netlink.LinkSetXdpFdWithFlags(link, -1, int(p.mode)); err != nil {
 		return fmt.Errorf("LinkSetXdpFd() failed: %v", err)
 	}
 	p.ifname = ""
