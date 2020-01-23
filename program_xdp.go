@@ -29,12 +29,14 @@ const (
 type XdpAttachMode int
 
 const (
-	// XdpAttachModeNone supposed to be "best effort" - automatically selects better mode.
-	// However, it seems does not work at least with kernel 4.15
+	// XdpAttachModeNone stands for "best effort" - kernel automatically
+	// selects best mode (would try Drv first, then fallback to Generic).
+	// NOTE: Kernel will not fallback to Generic XDP if NIC driver failed
+	//       to install XDP program.
 	XdpAttachModeNone XdpAttachMode = 0
 	// XdpAttachModeDrv is native, driver mode (support from driver side required)
 	XdpAttachModeDrv XdpAttachMode = 1
-	// XdpAttachModeSkb is "generic", kernel mode, less performant as comparing to native
+	// XdpAttachModeSkb is "generic", kernel mode, less performant comparing to native,
 	// but does not requires driver support.
 	XdpAttachModeSkb XdpAttachMode = 2
 )
@@ -66,8 +68,9 @@ func (t XdpResult) String() string {
 type xdpProgram struct {
 	BaseProgram
 
-	// Name of interface where XDP program attached to.
+	// Interface name and attach mode
 	ifname string
+	mode   XdpAttachMode
 }
 
 func newXdpProgram(name, license string, bytecode []byte) Program {
@@ -118,6 +121,7 @@ func (p *xdpProgram) Attach(data interface{}) error {
 	}
 
 	p.ifname = ifaceName
+	p.mode = attachMode
 
 	return nil
 }
@@ -129,15 +133,14 @@ func (p *xdpProgram) Detach() error {
 		return errors.New("Program isn't attached")
 	}
 	// Lookup interface by given name, we need to extract iface index
-	iface, err := netlink.LinkByName(p.ifname)
+	link, err := netlink.LinkByName(p.ifname)
 	if err != nil {
 		// Most likely no such interface
 		return fmt.Errorf("LinkByName() failed: %v", err)
 	}
 
 	// Setting eBPF program with FD -1 actually removes it from interface
-	err = netlink.LinkSetXdpFd(iface, -1)
-	if err != nil {
+	if err := netlink.LinkSetXdpFdWithFlags(link, -1, int(p.mode)); err != nil {
 		return fmt.Errorf("LinkSetXdpFd() failed: %v", err)
 	}
 	p.ifname = ""
