@@ -34,17 +34,21 @@ const (
 	// NOTE: Kernel will not fallback to Generic XDP if NIC driver failed
 	//       to install XDP program.
 	XdpAttachModeNone XdpAttachMode = 0
-	// XdpAttachModeDrv is native, driver mode (support from driver side required)
-	XdpAttachModeDrv XdpAttachMode = 1
 	// XdpAttachModeSkb is "generic", kernel mode, less performant comparing to native,
 	// but does not requires driver support.
-	XdpAttachModeSkb XdpAttachMode = 2
+	XdpAttachModeSkb XdpAttachMode = (1 << 1)
+	// XdpAttachModeDrv is native, driver mode (support from driver side required)
+	XdpAttachModeDrv XdpAttachMode = (1 << 2)
+	// XdpAttachModeHw suitable for NICs with hardware XDP support
+	XdpAttachModeHw XdpAttachMode = (1 << 3)
 )
 
 // XdpAttachParams used to pass parameters to Attach() call.
 type XdpAttachParams struct {
+	// Interface is string name of interface to attach program to
 	Interface string
-	Mode      XdpAttachMode
+	// Mode is one of XdpAttachMode.
+	Mode XdpAttachMode
 }
 
 func (t XdpResult) String() string {
@@ -96,7 +100,7 @@ func newXdpProgram(name, license string, bytecode []byte) Program {
 //    })
 func (p *xdpProgram) Attach(data interface{}) error {
 	var ifaceName string
-	var attachMode = XdpAttachModeNone
+	var attachMode = XdpAttachModeNone // AutoSelect
 
 	switch x := data.(type) {
 	case string:

@@ -135,6 +135,13 @@ func (ts *xdpTestSuite) TestElfLoad() {
 	err = xdp0.Detach()
 	ts.NoError(err)
 
+	// "lo" interface does not support XDP natively, so should fail
+	err = xdp0.Attach(&goebpf.XdpAttachParams{
+		Interface: "lo",
+		Mode:      goebpf.XdpAttachModeDrv,
+	})
+	ts.Require().Error(err)
+
 	// Unload programs (not required for real use case)
 	for _, program := range eb.GetPrograms() {
 		err = program.Close()
