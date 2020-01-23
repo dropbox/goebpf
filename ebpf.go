@@ -28,7 +28,7 @@ type Program interface {
 	// Unload program from kernel
 	Close() error
 	// Attach program to something - depends on program type.
-	// - XDP: Attach to network interface (data - iface name, e.g. "eth0")
+	// - XDP: Attach to network interface (data - iface name, or XdpAttachParams)
 	// - SocketFilter: Attach to socket (data - socket fd)
 	Attach(data interface{}) error
 	// Detach previously attached program
