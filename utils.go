@@ -13,6 +13,15 @@ package goebpf
 #include "bpf.h"
 #include "bpf_helpers.h"
 
+// Mac has syscall() deprecated and this produces some noise during package
+// install. Wrap all syscalls into macro
+#ifdef __linux__
+#define SYSCALL_BPF(command)		\
+	syscall(__NR_bpf, command, &attr, sizeof(attr));
+#else
+#define SYSCALL_BPF(command)		0
+#endif
+
 static int ebpf_obj_pin(__u32 fd, const char *pathname,
 		void *log_buf, size_t log_size)
 {
@@ -21,7 +30,7 @@ static int ebpf_obj_pin(__u32 fd, const char *pathname,
 	attr.pathname = ptr_to_u64((void *)pathname);
 	attr.bpf_fd = fd;
 
-	int res = syscall(__NR_bpf, BPF_OBJ_PIN, &attr, sizeof(attr));
+	int res = SYSCALL_BPF(BPF_OBJ_PIN);
 	strncpy(log_buf, strerror(errno), log_size);
 	return res;
 }
@@ -32,7 +41,7 @@ static int ebpf_prog_get_fd_by_id(__u32 id,
 	union bpf_attr attr = {};
 	attr.prog_id = id;
 
-	int res = syscall(__NR_bpf, BPF_PROG_GET_FD_BY_ID, &attr, sizeof(attr));
+	int res = SYSCALL_BPF(BPF_PROG_GET_FD_BY_ID);
 	strncpy(log_buf, strerror(errno), log_size);
 
 	return res;
@@ -47,7 +56,7 @@ static int ebpf_obj_get_info_by_fd(__u32 fd, void *info, __u32 info_len,
 	attr.info.info = ptr_to_u64(info);
 	attr.info.info_len = info_len;
 
-	int res = syscall(__NR_bpf, BPF_OBJ_GET_INFO_BY_FD, &attr, sizeof(attr));
+	int res = SYSCALL_BPF(BPF_OBJ_GET_INFO_BY_FD);
 	strncpy(log_buf, strerror(errno), log_size);
 
 	return res;
@@ -66,7 +75,7 @@ static int ebpf_obj_get_info_maps(__u32 fd, void *map_ids, __u32 maps_num,
 	attr.info.info = ptr_to_u64(&info);
 	attr.info.info_len = sizeof(info);
 
-	int res = syscall(__NR_bpf, BPF_OBJ_GET_INFO_BY_FD, &attr, sizeof(attr));
+	int res = SYSCALL_BPF(BPF_OBJ_GET_INFO_BY_FD);
 	strncpy(log_buf, strerror(errno), log_size);
 
 	return res;
