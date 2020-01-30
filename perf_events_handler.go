@@ -38,12 +38,15 @@ static int perf_event_open(int cpu_id, int pid, void *error_buf, size_t error_si
     };
 
     // Open perf events for given CPU
-    int pmu_fd = syscall(__NR_perf_event_open, &attr, pid, cpu_id, -1, 0);
+#ifdef __linux
+	int pmu_fd = syscall(__NR_perf_event_open, &attr, pid, cpu_id, -1, 0);
     if (pmu_fd <= 0) {
         strncpy(error_buf, strerror(errno), error_size);
     }
-
-    return pmu_fd;
+	return pmu_fd;
+#else
+	return 0;
+#endif
 }
 
 // Enables perf events on pmu_fd create by perf_event_open()

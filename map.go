@@ -12,6 +12,15 @@ package goebpf
 #include "bpf.h"
 #include "bpf_helpers.h"
 
+// Mac has syscall() deprecated and this produces some noise during package install.
+// Wrap all syscalls into macro.
+#ifdef __linux__
+#define SYSCALL_BPF(command)		\
+	syscall(__NR_bpf, command, &attr, sizeof(attr));
+#else
+#define SYSCALL_BPF(command)		0
+#endif
+
 // Since eBPF mock package is optional and have definition of "__maps_head" symbol
 // it may cause link error, so defining weak symbol here as well
 struct __create_map_def maps_head;
@@ -30,7 +39,7 @@ static int ebpf_map_create(const char *name, __u32 map_type, __u32 key_size, __u
 	attr.inner_map_fd = inner_fd;
 	strncpy((char*)&attr.map_name, name, BPF_OBJ_NAME_LEN - 1);
 
-	int res = syscall(__NR_bpf, BPF_MAP_CREATE, &attr, sizeof(attr));
+	int res = SYSCALL_BPF(BPF_MAP_CREATE);
 	strncpy(log_buf, strerror(errno), log_size);
 	return res;
 }
@@ -45,7 +54,7 @@ static int ebpf_map_update_elem(__u32 fd, const void *key, const void *value,
 	attr.value = ptr_to_u64(value);
 	attr.flags = flags;
 
-	int res = syscall(__NR_bpf, BPF_MAP_UPDATE_ELEM, &attr, sizeof(attr));
+	int res = SYSCALL_BPF(BPF_MAP_UPDATE_ELEM);
 	strncpy(log_buf, strerror(errno), log_size);
 	return res;
 }
@@ -59,7 +68,7 @@ static int ebpf_map_lookup_elem(__u32 fd, const void *key, void *value,
 	attr.key = ptr_to_u64(key);
 	attr.value = ptr_to_u64(value);
 
-	int res = syscall(__NR_bpf, BPF_MAP_LOOKUP_ELEM, &attr, sizeof(attr));
+	int res = SYSCALL_BPF(BPF_MAP_LOOKUP_ELEM);
 	strncpy(log_buf, strerror(errno), log_size);
 	return res;
 }
@@ -72,7 +81,7 @@ static int ebpf_map_delete_elem(__u32 fd, const void *key,
 	attr.map_fd = fd;
 	attr.key = ptr_to_u64(key);
 
-	int res = syscall(__NR_bpf, BPF_MAP_DELETE_ELEM, &attr, sizeof(attr));
+	int res = SYSCALL_BPF(BPF_MAP_DELETE_ELEM);
 	strncpy(log_buf, strerror(errno), log_size);
 	return res;
 }
@@ -84,7 +93,7 @@ static int ebpf_obj_get(const char *pathname,
 
 	attr.pathname = ptr_to_u64(pathname);
 
-	int res = syscall(__NR_bpf, BPF_OBJ_GET, &attr, sizeof(attr));
+	int res = SYSCALL_BPF(BPF_OBJ_GET);
 	strncpy(log_buf, strerror(errno), log_size);
 	return res;
 }
@@ -95,7 +104,7 @@ static int ebpf_map_get_fd_by_id(__u32 id,
 	union bpf_attr attr = {};
 	attr.map_id = id;
 
-	int fd = syscall(__NR_bpf, BPF_MAP_GET_FD_BY_ID, &attr, sizeof(attr));
+	int fd = SYSCALL_BPF(BPF_MAP_GET_FD_BY_ID);
 	strncpy(log_buf, strerror(errno), log_size);
 
 	return fd;
@@ -110,7 +119,7 @@ static int ebpf_obj_get_info_by_fd(__u32 fd, void *info, __u32 info_len,
 	attr.info.info = ptr_to_u64(info);
 	attr.info.info_len = info_len;
 
-	int res = syscall(__NR_bpf, BPF_OBJ_GET_INFO_BY_FD, &attr, sizeof(attr));
+	int res = SYSCALL_BPF(BPF_OBJ_GET_INFO_BY_FD);
 	strncpy(log_buf, strerror(errno), log_size);
 
 	return res;
