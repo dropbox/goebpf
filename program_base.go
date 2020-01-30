@@ -32,6 +32,7 @@ static int ebpf_prog_load(const char *name, __u32 prog_type, const void *insns, 
 	// program name
 	strncpy((char*)&attr.prog_name, name, BPF_OBJ_NAME_LEN - 1);
 
+#ifdef __linux__
 	int res = syscall(__NR_bpf, BPF_PROG_LOAD, &attr, sizeof(attr));
 	if (res == -1) {
 		// Try again with log
@@ -40,8 +41,10 @@ static int ebpf_prog_load(const char *name, __u32 prog_type, const void *insns, 
 		attr.log_level = 1;
 		res = syscall(__NR_bpf, BPF_PROG_LOAD, &attr, sizeof(attr));
 	}
-
 	return res;
+#else
+	return 0;
+#endif
 }
 
 */
