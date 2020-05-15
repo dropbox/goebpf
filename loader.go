@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"sort"
 	"strings"
 
@@ -375,13 +376,23 @@ func loadPrograms(elfFile *elf.File, maps map[string]Map) (map[string]Program, e
 }
 
 // Reads ELF file compiled by clang + llvm for target bpf
-func (s *ebpfSystem) LoadElf(fn string) error {
-	// Open/read ELF headers
-	elfFile, err := elf.Open(fn)
+func (s *ebpfSystem) LoadElf(path string) error {
+	f, err := os.Open(path)
 	if err != nil {
 		return err
 	}
-	defer elfFile.Close()
+	defer f.Close()
+
+	return s.Load(f)
+}
+
+// Reads ELF file compiled by clang + llvm for target bpf
+func (s *ebpfSystem) Load(r io.ReaderAt) error {
+	// Read ELF headers
+	elfFile, err := elf.NewFile(r)
+	if err != nil {
+		return err
+	}
 
 	// Load eBPF maps
 	s.Maps, err = loadAndCreateMaps(elfFile)
