@@ -17,7 +17,7 @@ import (
 func TestPerfEvents(t *testing.T) {
 	// Read ELF, find map, load/attach program
 	eb := goebpf.NewDefaultEbpfSystem()
-	err := eb.LoadElf(testProgramFilename)
+	err := eb.LoadElf(xdpProgramFilename)
 	require.NoError(t, err)
 	perfMap := eb.GetMapByName("perf_map")
 	require.NotNil(t, perfMap)

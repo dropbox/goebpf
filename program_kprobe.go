@@ -8,8 +8,23 @@ package goebpf
 		#include <linux/perf_event.h>
 		#include <linux/version.h>
 		#include <sys/syscall.h>
+		#define SYSCALL(...) syscall(__VA_ARGS__)
 	#else
 		// macOS
+		#define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + (c))
+		#define LINUX_VERSION_CODE          266002
+		#define SYSCALL(...) (0)
+		#define PERF_SAMPLE_RAW             1U << 10
+		#define PERF_TYPE_TRACEPOINT        2
+		#define PERF_COUNT_SW_BPF_OUTPUT    10
+		#define PERF_EVENT_IOC_DISABLE      0
+		#define PERF_EVENT_IOC_ENABLE       1
+		#define PERF_EVENT_IOC_SET_BPF      8
+		#define PERF_FLAG_FD_CLOEXEC        (1UL << 3)
+		#define __NR_perf_event_open        364
+		struct perf_event_attr {
+			int type, config, sample_type, sample_period, wakeup_events;
+		};
 	#endif
 
 	#include <unistd.h>
@@ -23,7 +38,7 @@ package goebpf
 		attr.type = PERF_TYPE_TRACEPOINT;
 		attr.sample_period = 1;
 		attr.wakeup_events = 1;
-		int pfd = syscall(__NR_perf_event_open, &attr, -1, 0, -1, PERF_FLAG_FD_CLOEXEC);
+		int pfd = SYSCALL(__NR_perf_event_open, &attr, -1, 0, -1, PERF_FLAG_FD_CLOEXEC);
 		if (pfd < 0) {
 			//fprintf(stderr, "perf_event_open(%s/id): %s\n", event_path,
 			//strerror(errno));
@@ -113,7 +128,7 @@ func newProbeProgram(bp *BaseProgram, attachType KprobeAttachType) Program {
 	}
 
 	bp.programType = ProgramTypeKprobe
-	bp.kernelVersion = C.LINUX_VERSION_CODE
+	bp.kernelVersion = int(C.LINUX_VERSION_CODE)
 
 	return &kprobeProgram{
 		BaseProgram: bp,
@@ -130,6 +145,14 @@ func newKretprobeProgram(bp *BaseProgram) Program {
 }
 
 func (p *kprobeProgram) Attach(data interface{}) error {
+
+	// optional target override by parameter
+	switch v := data.(type) {
+	case string:
+		if len(v) > 0 {
+			p.kprobe.symbol = v
+		}
+	}
 
 	if err := p.kprobe.Attach(p.GetFd()); err != nil {
 		return err
