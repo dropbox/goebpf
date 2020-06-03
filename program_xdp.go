@@ -70,21 +70,17 @@ func (t XdpResult) String() string {
 
 // XDP eBPF program (implements Program interface)
 type xdpProgram struct {
-	BaseProgram
+	*BaseProgram
 
 	// Interface name and attach mode
 	ifname string
 	mode   XdpAttachMode
 }
 
-func newXdpProgram(name, license string, bytecode []byte) Program {
+func newXdpProgram(bp *BaseProgram) Program {
+	bp.programType = ProgramTypeXdp
 	return &xdpProgram{
-		BaseProgram: BaseProgram{
-			name:        name,
-			license:     license,
-			bytecode:    bytecode,
-			programType: ProgramTypeXdp,
-		},
+		BaseProgram: bp,
 	}
 }
 

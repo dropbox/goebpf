@@ -35,6 +35,8 @@ type Program interface {
 	Detach() error
 	// Returns program name as it defined in C code
 	GetName() string
+	// Returns program target symbol as defined in the section name e.g. kprobe/SyS_execve
+	GetTarget() string
 	// Returns program file descriptor (given by kernel)
 	GetFd() int
 	// Returns size of program in bytes

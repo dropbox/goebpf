@@ -30,11 +30,13 @@ const (
 )
 
 // Supported ELF section names and function how to create program of it type
-type programCreator func(name, license string, bytecode []byte) Program
+type programCreator func(bp *BaseProgram) Program
 
 var sectionNameToProgramType = map[string]programCreator{
 	"xdp":           newXdpProgram,
 	"socket_filter": newSocketFilterProgram,
+	"kprobe":        newKprobeProgram,
+	"kretprobe":     newKretprobeProgram,
 }
 
 // BPF instruction //
@@ -294,8 +296,15 @@ func loadPrograms(elfFile *elf.File, maps map[string]Map) (map[string]Program, e
 		if section.Type != elf.SHT_PROGBITS {
 			continue
 		}
+		// Parse optional target from section name e.g. kprobe/SyS_execve
+		tokens := strings.Split(section.Name, "/")
+		progType := tokens[0]
+		target := ""
+		if len(tokens) > 1 {
+			target = tokens[1]
+		}
 		// Ensure that this section is known
-		createProgram, ok := sectionNameToProgramType[strings.ToLower(section.Name)]
+		createProgram, ok := sectionNameToProgramType[strings.ToLower(progType)]
 		if !ok {
 			continue
 		}
@@ -366,7 +375,13 @@ func loadPrograms(elfFile *elf.File, maps map[string]Map) (map[string]Program, e
 			name := offsetToNameMap[offset]
 			size := lastOffset - offset
 			// Create Program instance with type based on section name (e.g. XDP)
-			result[name] = createProgram(name, license, bytecode[offset:offset+size])
+			bp := &BaseProgram{
+				name:     name,
+				target:   target,
+				license:  license,
+				bytecode: bytecode[offset : offset+size],
+			}
+			result[name] = createProgram(bp)
 			lastOffset = offset
 		}
 	}

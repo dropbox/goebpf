@@ -1,4 +1,4 @@
-# Copyright (c) 2019 Dropbox, Inc.
+# Copyright (c) 2020 Dropbox, Inc.
 # Full license can be found in the LICENSE file.
 
 GOCMD := go
@@ -10,8 +10,8 @@ CLANG_INCLUDE := -I../../..
 GO_SOURCE := main.go
 GO_BINARY := main
 
-EBPF_SOURCE := ebpf_prog/xdp_fw.c
-EBPF_BINARY := ebpf_prog/xdp_fw.elf
+EBPF_SOURCE := ebpf_prog/kprobe.c
+EBPF_BINARY := ebpf_prog/kprobe.elf
 
 all: build_bpf build_go
 
