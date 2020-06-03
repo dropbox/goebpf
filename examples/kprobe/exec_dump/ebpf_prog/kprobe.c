@@ -2,7 +2,6 @@
 // Full license can be found in the LICENSE file.
 
 #include "bpf_helpers.h"
-#include "ptrace.h"
 
 #define BUFSIZE_PADDED (2 << 13)
 #define BUFSIZE ((BUFSIZE_PADDED - 1) >> 1)
@@ -20,7 +19,6 @@ typedef struct event
     __u32 pid;
     __u32 uid;
     __u32 gid;
-    __s32 rc;
     __s32 type;
     char comm[TASK_COMM_LEN];
 } event_t;

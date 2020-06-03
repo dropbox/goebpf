@@ -29,7 +29,6 @@ type event_t struct {
 	Pid      uint32
 	Uid      uint32
 	Gid      uint32
-	Rc       int32
 	Type     int32
 	Comm     [32]byte
 }
