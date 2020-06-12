@@ -13,7 +13,7 @@ type MockProgram struct {
 	Fd       int
 	License  string
 	Name     string
-	Section   string
+	Section  string
 	Size     int
 	ProgType goebpf.ProgramType
 }

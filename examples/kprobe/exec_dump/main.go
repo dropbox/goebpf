@@ -129,8 +129,8 @@ func (p *Program) startPerfEvents(events <-chan []byte) {
 				// display process execution event
 				ts := goebpf.KtimeToTime(ev.KtimeNs)
 				fmt.Printf("%s  %-16s  %-6d %-6d %-6d %s\n",
-					ts.Format("15:04:05.000"), 
-					goebpf.NullTerminatedStringToString(ev.Comm[:]), 
+					ts.Format("15:04:05.000"),
+					goebpf.NullTerminatedStringToString(ev.Comm[:]),
 					ev.Pid, ev.Uid, ev.Gid, desc)
 
 			} else {

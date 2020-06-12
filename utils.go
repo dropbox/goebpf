@@ -423,7 +423,7 @@ func KeyValueToBytes(ival interface{}, size int) ([]byte, error) {
 	return res, nil
 }
 
-// KtimeToTime converts kernel time (nanoseconds since boot) to time.Time 
+// KtimeToTime converts kernel time (nanoseconds since boot) to time.Time
 func KtimeToTime(ktime uint64) time.Time {
 	si := &syscall.Sysinfo_t{}
 	syscall.Sysinfo(si)
