@@ -13,7 +13,7 @@ type MockProgram struct {
 	Fd       int
 	License  string
 	Name     string
-	Target   string
+	Section   string
 	Size     int
 	ProgType goebpf.ProgramType
 }
@@ -75,9 +75,9 @@ func (m *MockProgram) GetName() string {
 	return m.Name
 }
 
-// GetTarget returns optional target from section name
-func (m *MockProgram) GetTarget() string {
-	return m.Target
+// GetSection returns the section name used by the program
+func (m *MockProgram) GetSection() string {
+	return m.Section
 }
 
 // GetSize returns program size set by user

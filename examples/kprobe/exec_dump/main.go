@@ -199,6 +199,5 @@ func (p *Program) ShowInfo() {
 		fmt.Printf("\t%s: %v (%s), size %d, license \"%s\"\n",
 			prog.GetName(), prog.GetType(), prog.GetSection(), prog.GetSize(), prog.GetLicense(),
 		)
-
 	}
 }

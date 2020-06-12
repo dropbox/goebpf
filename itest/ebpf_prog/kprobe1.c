@@ -12,8 +12,7 @@ BPF_MAP_DEF(perf_map) = {
 BPF_MAP_ADD(perf_map);
 
 SEC("kprobe/guess_execve")
-int kprobe0(struct pt_regs *ctx)
-{
+int kprobe0(struct pt_regs *ctx) {
   char comm[32];
   bpf_get_current_comm(comm, sizeof(comm));
   bpf_perf_event_output(ctx, &perf_map, BPF_F_CURRENT_CPU, comm, sizeof(comm));
@@ -21,8 +20,7 @@ int kprobe0(struct pt_regs *ctx)
 }
 
 SEC("kretprobe/guess_execve")
-int kprobe1(struct pt_regs *ctx)
-{
+int kprobe1(struct pt_regs *ctx) {
   char comm[32];
   bpf_get_current_comm(comm, sizeof(comm));
   bpf_perf_event_output(ctx, &perf_map, BPF_F_CURRENT_CPU, comm, sizeof(comm));
