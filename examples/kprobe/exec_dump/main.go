@@ -12,8 +12,6 @@ import (
 	"os/signal"
 	"strings"
 	"sync"
-	"syscall"
-	"time"
 
 	"github.com/dropbox/goebpf"
 	"github.com/juju/errors"
@@ -24,13 +22,13 @@ var (
 	ErrMapNotFound     = errors.New("map not found")
 )
 
-type event_t struct {
-	Ktime_ns uint64
-	Pid      uint32
-	Uid      uint32
-	Gid      uint32
-	Type     int32
-	Comm     [32]byte
+type Event_t struct {
+	KtimeNs uint64
+	Pid     uint32
+	Uid     uint32
+	Gid     uint32
+	Type    int32
+	Comm    [32]byte
 }
 
 type Program struct {
@@ -103,9 +101,9 @@ func (p *Program) startPerfEvents(events <-chan []byte) {
 			if b, ok := <-events; ok {
 
 				// parse proc info
-				e := event_t{}
+				var ev Event_t
 				buf := bytes.NewBuffer(b)
-				if err := binary.Read(buf, binary.LittleEndian, &e); err != nil {
+				if err := binary.Read(buf, binary.LittleEndian, &ev); err != nil {
 					fmt.Printf("error: %v\n", err)
 					continue
 				}
@@ -129,9 +127,11 @@ func (p *Program) startPerfEvents(events <-chan []byte) {
 				}
 
 				// display process execution event
-				ts := ktime_to_time(e.Ktime_ns)
+				ts := goebpf.KtimeToTime(ev.KtimeNs)
 				fmt.Printf("%s  %-16s  %-6d %-6d %-6d %s\n",
-					ts.Format("15:04:05.000"), cstring(e.Comm[:]), e.Pid, e.Uid, e.Gid, desc)
+					ts.Format("15:04:05.000"), 
+					goebpf.NullTerminatedStringToString(ev.Comm[:]), 
+					ev.Pid, ev.Uid, ev.Gid, desc)
 
 			} else {
 				break
@@ -197,25 +197,8 @@ func (p *Program) ShowInfo() {
 	fmt.Println("\nPrograms:")
 	for _, prog := range p.bpf.GetPrograms() {
 		fmt.Printf("\t%s: %v (%s), size %d, license \"%s\"\n",
-			prog.GetName(), prog.GetType(), prog.GetTarget(), prog.GetSize(), prog.GetLicense(),
+			prog.GetName(), prog.GetType(), prog.GetSection(), prog.GetSize(), prog.GetLicense(),
 		)
 
 	}
-}
-
-func cstring(b []byte) string {
-	for i, c := range b {
-		if c == byte(0) {
-			return string(b[:i])
-		}
-	}
-	return string(b)
-}
-
-func ktime_to_time(ktime uint64) time.Time {
-	si := &syscall.Sysinfo_t{}
-	syscall.Sysinfo(si)
-	now := time.Now()
-	base := now.Add(-time.Duration(si.Uptime) * time.Second)
-	return base.Add(time.Duration(ktime) * time.Nanosecond)
 }

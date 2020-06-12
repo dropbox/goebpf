@@ -292,19 +292,17 @@ func loadPrograms(elfFile *elf.File, maps map[string]Map) (map[string]Program, e
 	// Iterate over all ELF section in order to find known sections with eBPF programs
 	result := make(map[string]Program)
 	for sectionIndex, section := range elfFile.Sections {
+
 		// eBPF programs always sit in PROGBITS sections, so skip others
 		if section.Type != elf.SHT_PROGBITS {
 			continue
 		}
-		// Parse optional target from section name e.g. kprobe/SyS_execve
-		tokens := strings.Split(section.Name, "/")
-		progType := tokens[0]
-		target := ""
-		if len(tokens) > 1 {
-			target = tokens[1]
-		}
+
+		// Parse program type from section (everything before a '/' delimiter)
+		progType := strings.ToLower(strings.Split(section.Name, "/")[0])
+
 		// Ensure that this section is known
-		createProgram, ok := sectionNameToProgramType[strings.ToLower(progType)]
+		createProgram, ok := sectionNameToProgramType[progType]
 		if !ok {
 			continue
 		}
@@ -375,13 +373,12 @@ func loadPrograms(elfFile *elf.File, maps map[string]Map) (map[string]Program, e
 			name := offsetToNameMap[offset]
 			size := lastOffset - offset
 			// Create Program instance with type based on section name (e.g. XDP)
-			bp := &BaseProgram{
+			result[name] = createProgram(&BaseProgram{
 				name:     name,
-				target:   target,
+				section:  section.Name,
 				license:  license,
 				bytecode: bytecode[offset : offset+size],
-			}
-			result[name] = createProgram(bp)
+			})
 			lastOffset = offset
 		}
 	}

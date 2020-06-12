@@ -113,7 +113,7 @@ func (t ProgramType) String() string {
 type BaseProgram struct {
 	fd            int // File Descriptor
 	name          string
-	target        string
+	section       string
 	programType   ProgramType
 	license       string // License
 	bytecode      []byte // eBPF instructions (each instruction - 8 bytes)
@@ -123,15 +123,14 @@ type BaseProgram struct {
 // Load loads program into linux kernel
 func (prog *BaseProgram) Load() error {
 
-	// truncate name if required
-	pname := prog.name
-	if len(pname) >= C.BPF_OBJ_NAME_LEN {
-		pname = pname[:int(C.BPF_OBJ_NAME_LEN)]
+	// sanity check program name length
+	if len(prog.name) >= C.BPF_OBJ_NAME_LEN {
+		return fmt.Errorf("Program name is too long. (max %d)", C.BPF_OBJ_NAME_LEN)
 	}
 
 	// Buffer for kernel's verified debug messages
 	var logBuf [logBufferSize]byte
-	name := C.CString(pname)
+	name := C.CString(prog.name)
 	defer C.free(unsafe.Pointer(name))
 	license := C.CString(prog.license)
 	defer C.free(unsafe.Pointer(license))
@@ -182,9 +181,9 @@ func (prog *BaseProgram) GetName() string {
 	return prog.name
 }
 
-// GetTarget returns section name target if present i.e. kprobe/<target>
-func (prog *BaseProgram) GetTarget() string {
-	return prog.target
+// GetSection returns section name for the program
+func (prog *BaseProgram) GetSection() string {
+	return prog.section
 }
 
 // GetType returns program type

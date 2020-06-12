@@ -120,19 +120,21 @@ func newProbeProgram(bp *BaseProgram, attachType KprobeAttachType) Program {
 		return nil
 	}
 
-	// sanity check target
-	target := bp.GetTarget()
-	if target == "" {
+	// parse and sanity check symbol
+	section := bp.GetSection()
+	tokens := strings.Split(section, "/")
+	if len(tokens) < 2 {
 		fmt.Fprintf(os.Stderr, "ERROR: invalid section name e.g. use format '%s/SyS_execve'.\n", attachType.String())
 		return nil
 	}
 
+	// update base program info
 	bp.programType = ProgramTypeKprobe
 	bp.kernelVersion = int(C.LINUX_VERSION_CODE)
 
 	return &kprobeProgram{
 		BaseProgram: bp,
-		kprobe:      newKprobe(attachType, target),
+		kprobe:      newKprobe(attachType, tokens[1]),
 	}
 }
 
@@ -146,7 +148,7 @@ func newKretprobeProgram(bp *BaseProgram) Program {
 
 func (p *kprobeProgram) Attach(data interface{}) error {
 
-	// optional target override by parameter
+	// optional symbol override by parameter
 	switch v := data.(type) {
 	case string:
 		if len(v) > 0 {
