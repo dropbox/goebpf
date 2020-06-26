@@ -4,6 +4,8 @@
 package goebpf_mock
 
 import (
+	"io"
+
 	"github.com/dropbox/goebpf"
 )
 
@@ -27,7 +29,12 @@ func NewMockSystem() *MockSystem {
 }
 
 // LoadElf does nothing, just a mock for original LoadElf
-func (m *MockSystem) LoadElf(fn string) error {
+func (m *MockSystem) LoadElf(path string) error {
+	return m.ErrorLoadElf
+}
+
+// Load does nothing, just a mock for original Load
+func (m *MockSystem) Load(r io.ReaderAt) error {
 	return m.ErrorLoadElf
 }
 
