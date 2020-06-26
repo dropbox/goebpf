@@ -11,7 +11,7 @@ type System interface {
 	// Read previously compiled eBPF program at the given path
 	LoadElf(path string) error
 	// Read previously compiled eBPF program from an io.ReaderAt
-	Load(r io.ReaderAt) error
+	Load(reader io.ReaderAt) error
 	// Get all defined eBPF maps
 	GetMaps() map[string]Map
 	// Returns Map or nil if not found

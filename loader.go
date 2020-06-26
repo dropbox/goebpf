@@ -375,7 +375,7 @@ func loadPrograms(elfFile *elf.File, maps map[string]Map) (map[string]Program, e
 	return result, nil
 }
 
-// Reads ELF file compiled by clang + llvm for target bpf
+// LoadElf reads ELF file compiled by clang + llvm for target bpf
 func (s *ebpfSystem) LoadElf(path string) error {
 	f, err := os.Open(path)
 	if err != nil {
@@ -386,7 +386,7 @@ func (s *ebpfSystem) LoadElf(path string) error {
 	return s.Load(f)
 }
 
-// Reads ELF file compiled by clang + llvm for target bpf
+// Load reads ELF file compiled by clang + llvm for target bpf
 func (s *ebpfSystem) Load(r io.ReaderAt) error {
 	// Read ELF headers
 	elfFile, err := elf.NewFile(r)
