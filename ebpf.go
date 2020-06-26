@@ -3,11 +3,15 @@
 
 package goebpf
 
+import "io"
+
 // System defines interface for eBPF system - top level
 // interface to interact with eBPF system
 type System interface {
-	// Read previously compiled eBPF program
-	LoadElf(fn string) error
+	// Read previously compiled eBPF program at the given path
+	LoadElf(path string) error
+	// Read previously compiled eBPF program from an io.ReaderAt
+	Load(reader io.ReaderAt) error
 	// Get all defined eBPF maps
 	GetMaps() map[string]Map
 	// Returns Map or nil if not found
