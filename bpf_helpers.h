@@ -11,7 +11,7 @@
 // Standard types.
 // Due to tooons of dependencies in standard linux kernel headers
 // Define types explicitly.
-typedef unsigned short __u16; // NOLINT
+typedef unsigned short __u16;  // NOLINT
 typedef unsigned char __u8;
 typedef unsigned int __u32;
 typedef unsigned long long __u64;
@@ -21,33 +21,32 @@ typedef __u32 __be32;
 typedef __u16 __be16;
 
 // BPF map types
-enum bpf_map_type
-{
-     BPF_MAP_TYPE_UNSPEC = 0,
-     BPF_MAP_TYPE_HASH,
-     BPF_MAP_TYPE_ARRAY,
-     BPF_MAP_TYPE_PROG_ARRAY,
-     BPF_MAP_TYPE_PERF_EVENT_ARRAY,
-     BPF_MAP_TYPE_PERCPU_HASH,
-     BPF_MAP_TYPE_PERCPU_ARRAY,
-     BPF_MAP_TYPE_STACK_TRACE,
-     BPF_MAP_TYPE_CGROUP_ARRAY,
-     BPF_MAP_TYPE_LRU_HASH,
-     BPF_MAP_TYPE_LRU_PERCPU_HASH,
-     BPF_MAP_TYPE_LPM_TRIE,
-     BPF_MAP_TYPE_ARRAY_OF_MAPS,
-     BPF_MAP_TYPE_HASH_OF_MAPS,
-     BPF_MAP_TYPE_DEVMAP,
-     BPF_MAP_TYPE_SOCKMAP,
-     BPF_MAP_TYPE_CPUMAP,
-     BPF_MAP_TYPE_XSKMAP,
-     BPF_MAP_TYPE_SOCKHASH,
-     BPF_MAP_TYPE_CGROUP_STORAGE,
-     BPF_MAP_TYPE_REUSEPORT_SOCKARRAY,
-     BPF_MAP_TYPE_PERCPU_CGROUP_STORAGE,
-     BPF_MAP_TYPE_QUEUE,
-     BPF_MAP_TYPE_STACK,
-     BPF_MAP_TYPE_SK_STORAGE,
+enum bpf_map_type {
+  BPF_MAP_TYPE_UNSPEC = 0,
+  BPF_MAP_TYPE_HASH,
+  BPF_MAP_TYPE_ARRAY,
+  BPF_MAP_TYPE_PROG_ARRAY,
+  BPF_MAP_TYPE_PERF_EVENT_ARRAY,
+  BPF_MAP_TYPE_PERCPU_HASH,
+  BPF_MAP_TYPE_PERCPU_ARRAY,
+  BPF_MAP_TYPE_STACK_TRACE,
+  BPF_MAP_TYPE_CGROUP_ARRAY,
+  BPF_MAP_TYPE_LRU_HASH,
+  BPF_MAP_TYPE_LRU_PERCPU_HASH,
+  BPF_MAP_TYPE_LPM_TRIE,
+  BPF_MAP_TYPE_ARRAY_OF_MAPS,
+  BPF_MAP_TYPE_HASH_OF_MAPS,
+  BPF_MAP_TYPE_DEVMAP,
+  BPF_MAP_TYPE_SOCKMAP,
+  BPF_MAP_TYPE_CPUMAP,
+  BPF_MAP_TYPE_XSKMAP,
+  BPF_MAP_TYPE_SOCKHASH,
+  BPF_MAP_TYPE_CGROUP_STORAGE,
+  BPF_MAP_TYPE_REUSEPORT_SOCKARRAY,
+  BPF_MAP_TYPE_PERCPU_CGROUP_STORAGE,
+  BPF_MAP_TYPE_QUEUE,
+  BPF_MAP_TYPE_STACK,
+  BPF_MAP_TYPE_SK_STORAGE,
 };
 
 /* flags for BPF_MAP_UPDATE_ELEM command */
@@ -64,19 +63,18 @@ enum bpf_map_type
 
 // A helper structure used by eBPF C program
 // to describe map attributes to BPF program loader
-struct bpf_map_def
-{
-     __u32 map_type;
-     __u32 key_size;
-     __u32 value_size;
-     __u32 max_entries;
-     __u32 map_flags;
-     // Array/Hash of maps use case: pointer to inner map template
-     void *inner_map_def;
-     // Define this to make map system wide ("object pinning")
-     // path could be anything, like '/sys/fs/bpf/foo'
-     // WARN: You must have BPF filesystem mounted on provided location
-     const char *persistent_path;
+struct bpf_map_def {
+  __u32 map_type;
+  __u32 key_size;
+  __u32 value_size;
+  __u32 max_entries;
+  __u32 map_flags;
+  // Array/Hash of maps use case: pointer to inner map template
+  void *inner_map_def;
+  // Define this to make map system wide ("object pinning")
+  // path could be anything, like '/sys/fs/bpf/foo'
+  // WARN: You must have BPF filesystem mounted on provided location
+  const char *persistent_path;
 };
 
 #define BPF_MAP_DEF_SIZE sizeof(struct bpf_map_def)
@@ -84,25 +82,22 @@ struct bpf_map_def
 #define BPF_MAP_OFFSET_INNER_MAP offsetof(struct bpf_map_def, inner_map_def)
 
 // XDP related constants
-enum xdp_action
-{
-     XDP_ABORTED = 0,
-     XDP_DROP,
-     XDP_PASS,
-     XDP_TX,
-     XDP_REDIRECT,
+enum xdp_action {
+  XDP_ABORTED = 0,
+  XDP_DROP,
+  XDP_PASS,
+  XDP_TX,
+  XDP_REDIRECT,
 };
 
 // Socket Filter programs return code
-enum socket_filter_action
-{
-     SOCKET_FILTER_DENY = 0,
-     SOCKET_FILTER_ALLOW,
+enum socket_filter_action {
+  SOCKET_FILTER_DENY = 0,
+  SOCKET_FILTER_ALLOW,
 };
 
-// register definitions from:
-// arch/x86/include/asm/ptrace.h
-
+// Kprobe required constants / structs
+// (arch/x86/include/asm/ptrace.h)
 #define PT_REGS_PARM1(x) ((x)->di)
 #define PT_REGS_PARM2(x) ((x)->si)
 #define PT_REGS_PARM3(x) ((x)->dx)
@@ -115,29 +110,28 @@ enum socket_filter_action
 #define PT_REGS_SP(x) ((x)->sp)
 #define PT_REGS_IP(x) ((x)->ip)
 
-struct pt_regs
-{
-     unsigned long r15;
-     unsigned long r14;
-     unsigned long r13;
-     unsigned long r12;
-     unsigned long bp;
-     unsigned long bx;
-     unsigned long r11;
-     unsigned long r10;
-     unsigned long r9;
-     unsigned long r8;
-     unsigned long ax;
-     unsigned long cx;
-     unsigned long dx;
-     unsigned long si;
-     unsigned long di;
-     unsigned long orig_ax;
-     unsigned long ip;
-     unsigned long cs;
-     unsigned long flags;
-     unsigned long sp;
-     unsigned long ss;
+struct pt_regs {
+  unsigned long r15;
+  unsigned long r14;
+  unsigned long r13;
+  unsigned long r12;
+  unsigned long bp;
+  unsigned long bx;
+  unsigned long r11;
+  unsigned long r10;
+  unsigned long r9;
+  unsigned long r8;
+  unsigned long ax;
+  unsigned long cx;
+  unsigned long dx;
+  unsigned long si;
+  unsigned long di;
+  unsigned long orig_ax;
+  unsigned long ip;
+  unsigned long cs;
+  unsigned long flags;
+  unsigned long sp;
+  unsigned long ss;
 };
 
 #define bpf_likely(X) __builtin_expect(!!(X), 1)
@@ -170,83 +164,76 @@ struct pt_regs
 
 // XDP metadata - basically data packet
 // P.S. for some reason XDP programs uses 32bit pointers
-struct xdp_md
-{
-     __u32 data;
-     __u32 data_end;
-     __u32 data_meta;
+struct xdp_md {
+  __u32 data;
+  __u32 data_end;
+  __u32 data_meta;
 };
 
 /* user accessible mirror of in-kernel sk_buff.
  * new fields can only be added to the end of this structure
  */
-struct __sk_buff
-{
-     __u32 len;
-     __u32 pkt_type;
-     __u32 mark;
-     __u32 queue_mapping;
-     __u32 protocol;
-     __u32 vlan_present;
-     __u32 vlan_tci;
-     __u32 vlan_proto;
-     __u32 priority;
-     __u32 ingress_ifindex;
-     __u32 ifindex;
-     __u32 tc_index;
-     __u32 cb[5];
-     __u32 hash;
-     __u32 tc_classid;
-     __u32 data;
-     __u32 data_end;
-     __u32 napi_id;
+struct __sk_buff {
+  __u32 len;
+  __u32 pkt_type;
+  __u32 mark;
+  __u32 queue_mapping;
+  __u32 protocol;
+  __u32 vlan_present;
+  __u32 vlan_tci;
+  __u32 vlan_proto;
+  __u32 priority;
+  __u32 ingress_ifindex;
+  __u32 ifindex;
+  __u32 tc_index;
+  __u32 cb[5];
+  __u32 hash;
+  __u32 tc_classid;
+  __u32 data;
+  __u32 data_end;
+  __u32 napi_id;
 
-     /* Accessed by BPF_PROG_TYPE_sk_skb types from here to ... */
-     __u32 family;
-     __u32 remote_ip4;    /* Stored in network byte order */
-     __u32 local_ip4;     /* Stored in network byte order */
-     __u32 remote_ip6[4]; /* Stored in network byte order */
-     __u32 local_ip6[4];  /* Stored in network byte order */
-     __u32 remote_port;   /* Stored in network byte order */
-     __u32 local_port;    /* stored in host byte order */
-     /* ... here. */
+  /* Accessed by BPF_PROG_TYPE_sk_skb types from here to ... */
+  __u32 family;
+  __u32 remote_ip4;    /* Stored in network byte order */
+  __u32 local_ip4;     /* Stored in network byte order */
+  __u32 remote_ip6[4]; /* Stored in network byte order */
+  __u32 local_ip6[4];  /* Stored in network byte order */
+  __u32 remote_port;   /* Stored in network byte order */
+  __u32 local_port;    /* stored in host byte order */
+  /* ... here. */
 
-     __u32 data_meta;
+  __u32 data_meta;
 };
 
-struct bpf_sock_tuple
-{
-     union {
-          struct
-          {
-               __be32 saddr;
-               __be32 daddr;
-               __be16 sport;
-               __be16 dport;
-          } ipv4;
-          struct
-          {
-               __be32 saddr[4];
-               __be32 daddr[4];
-               __be16 sport;
-               __be16 dport;
-          } ipv6;
-     };
+struct bpf_sock_tuple {
+  union {
+    struct {
+      __be32 saddr;
+      __be32 daddr;
+      __be16 sport;
+      __be16 dport;
+    } ipv4;
+    struct {
+      __be32 saddr[4];
+      __be32 daddr[4];
+      __be16 sport;
+      __be16 dport;
+    } ipv6;
+  };
 };
 
-struct bpf_spin_lock
-{
-     __u32 val;
+struct bpf_spin_lock {
+  __u32 val;
 };
 
-struct bpf_sysctl
-{
-     __u32 write;    /* Sysctl is being read (= 0) or written (= 1).
-				 * Allows 1,2,4-byte read, but no write.
-				 */
-     __u32 file_pos; /* Sysctl file position to read from, write to.
-				 * Allows 1,2,4-byte read an 4-byte write.
-				 */
+struct bpf_sysctl {
+  __u32 write;    /* Sysctl is being read (= 0) or written (= 1).
+                   * Allows 1,2,4-byte read, but no write.
+                   */
+  __u32 file_pos; /* Sysctl file position to read from, write to.
+                   * Allows 1,2,4-byte read an 4-byte write.
+                   */
 };
 
 // BPF helper functions supported on linux kernel 5.2+
@@ -737,11 +724,11 @@ static int (*bpf_xdp_adjust_head)(const void *ctx, int delta) = (void *) // NOLI
 // - Add #define DEBUG into your eBPF program before includes
 // - $ sudo cat /sys/kernel/debug/tracing/trace
 #ifdef DEBUG
-#define bpf_printk(fmt, ...)                                         \
-     ({                                                              \
-          char ____fmt[] = fmt;                                      \
-          bpf_trace_printk(____fmt, sizeof(____fmt), ##__VA_ARGS__); \
-     })
+#define bpf_printk(fmt, ...)                                   \
+  ({                                                           \
+    char ____fmt[] = fmt;                                      \
+    bpf_trace_printk(____fmt, sizeof(____fmt), ##__VA_ARGS__); \
+  })
 #else
 #define bpf_printk(fmt, ...)
 #endif
@@ -784,11 +771,10 @@ static int (*bpf_xdp_adjust_head)(const void *ctx, int delta) = (void *) // NOLI
 
 // XDP metadata - defined twice because of real eBPF uses 32 bit pointers
 // which are not acceptable for cross platform compilation.
-struct xdp_md
-{
-     void *data;
-     void *data_end;
-     void *data_meta;
+struct xdp_md {
+  void *data;
+  void *data_end;
+  void *data_meta;
 };
 
 // Mock BPF map support:
@@ -797,14 +783,12 @@ struct xdp_md
 // maintain linked list of maps (to be able to iterate and create them all)
 // This could be easily and nicely done using __attribute__ ((constructor))
 // Which is logically close to func init() int GO.
-struct __create_map_def
-{
-     const char *name;
-     void *map_data; // Mock version only: holds head to single linked list of map
-                     // items
-     struct bpf_map_def *map_def;
-     SLIST_ENTRY(__create_map_def)
-     next;
+struct __create_map_def {
+  const char *name;
+  void *map_data;  // Mock version only: holds head to single linked list of map
+                   // items
+  struct bpf_map_def *map_def;
+  SLIST_ENTRY(__create_map_def) next;
 };
 
 // Declaration only. Definition held in mock_map package.
@@ -813,15 +797,14 @@ extern struct __maps_head_def *__maps_head;
 
 #define BPF_MAP_DEF(x) static struct bpf_map_def x
 
-#define BPF_MAP_ADD(x)                                                \
-     static __attribute__((constructor)) void __bpf_map_##x()         \
-     {                                                                \
-          static struct __create_map_def __bpf_map_entry_##x;         \
-          __bpf_map_entry_##x.name = #x;                              \
-          __bpf_map_entry_##x.map_data = NULL;                        \
-          __bpf_map_entry_##x.map_def = &x;                           \
-          SLIST_INSERT_HEAD(__maps_head, &__bpf_map_entry_##x, next); \
-     }
+#define BPF_MAP_ADD(x)                                          \
+  static __attribute__((constructor)) void __bpf_map_##x() {    \
+    static struct __create_map_def __bpf_map_entry_##x;         \
+    __bpf_map_entry_##x.name = #x;                              \
+    __bpf_map_entry_##x.map_data = NULL;                        \
+    __bpf_map_entry_##x.map_def = &x;                           \
+    SLIST_INSERT_HEAD(__maps_head, &__bpf_map_entry_##x, next); \
+  }
 
 // BPF helper prototypes - definition is up to mac/linux host program
 void *bpf_map_lookup_elem(const void *map, const void *key);
@@ -830,41 +813,38 @@ int bpf_map_update_elem(const void *map, const void *key, const void *value,
 int bpf_map_delete_elem(const void *map, const void *key);
 
 // bpf_printk() is just printf()
-#define bpf_printk(fmt, ...)     \
-     printf(fmt, ##__VA_ARGS__); \
-     fflush(stdout);
+#define bpf_printk(fmt, ...)  \
+  printf(fmt, ##__VA_ARGS__); \
+  fflush(stdout);
 
 // bpf_tail_call() is nothing: only relevant for BPF arch
 #define bpf_tail_call(ctx, map, index)
 
 // adjust_meta / ajdust_header are simple functions to move pointer
 
-UNUSED static int bpf_xdp_adjust_meta(struct xdp_md *ctx, int offset)
-{
-     // For unittests only - function returns error if data_meta points to data_end
-     // which never the case in real world
-     if (ctx->data_meta == ctx->data_end)
-     {
-          return 1;
-     }
-     ctx->data_meta = (__u8 *)ctx->data_meta + offset; // NOLINT
+UNUSED static int bpf_xdp_adjust_meta(struct xdp_md *ctx, int offset) {
+  // For unittests only - function returns error if data_meta points to data_end
+  // which never the case in real world
+  if (ctx->data_meta == ctx->data_end) {
+    return 1;
+  }
+  ctx->data_meta = (__u8 *)ctx->data_meta + offset;  // NOLINT
 
-     return 0;
+  return 0;
 }
 
-UNUSED static int bpf_xdp_adjust_head(struct xdp_md *ctx, int offset)
-{
-     ctx->data = (__u8 *)ctx->data + offset; // NOLINT
+UNUSED static int bpf_xdp_adjust_head(struct xdp_md *ctx, int offset) {
+  ctx->data = (__u8 *)ctx->data + offset;  // NOLINT
 
-     return 0;
+  return 0;
 }
 
-UNUSED static int bpf_perf_event_output(void *ctx, void *map, __u64 index, void *data, __u32 size)
-{
-     return 0;
+UNUSED static int bpf_perf_event_output(void *ctx, void *map, __u64 index,
+                                        void *data, __u32 size) {
+  return 0;
 }
 
-#endif // of other than __BPF__
+#endif  // of other than __BPF__
 
 // Finally make sure that all types have expected size regardless of platform
 static_assert(sizeof(__u8) == 1, "wrong_u8_size");
