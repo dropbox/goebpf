@@ -70,12 +70,12 @@ import (
 
 const (
 	// namespace provides a unique namespace for kprobe labels
-	namespace          = "goebpf"
+	namespace = "goebpf"
 	// sysKprobeEvents
-	sysKprobeEvents    = "/sys/kernel/debug/tracing/kprobe_events"
+	sysKprobeEvents = "/sys/kernel/debug/tracing/kprobe_events"
 	// sysKprobe
-	sysKprobe          = "/sys/kernel/debug/tracing/events"
-	// kretprobeMaxActive 
+	sysKprobe = "/sys/kernel/debug/tracing/events"
+	// kretprobeMaxActive
 	kretprobeMaxActive = 4096
 )
 
@@ -84,7 +84,7 @@ var (
 	kprobeLock sync.Mutex
 )
 
-// KprobeAttachType specified whether a Kprobe program is 
+// KprobeAttachType specified whether a Kprobe program is
 // attached as an entry or exit probe.
 type KprobeAttachType int
 
@@ -199,11 +199,11 @@ func (p *kprobeProgram) Detach() error {
 // kprobe represents an individual kprobe_event handler.
 type kprobe struct {
 	// fd is the file descriptor as returned by debugfs
-	fd         int
+	fd int
 	// event is the kprobe entry as written to debugs
-	event      string
+	event string
 	// symbol is the target symbol to attach the kprobe to (i.e. SyS_execve)
-	symbol     string
+	symbol string
 	// attachType is whether the kprobe is attached to the entry or exit point
 	attachType KprobeAttachType
 }
@@ -335,8 +335,8 @@ func (p *kprobe) Attach(progFd int) error {
 	defer f.Close()
 
 	// Helper attach point for basic kernel agnostic programs.
-	// Earlier kernel versions will use the prefix 'SyS_' while 
-	// later kernel versions will use '__x64_sys_'. Specifying 
+	// Earlier kernel versions will use the prefix 'SyS_' while
+	// later kernel versions will use '__x64_sys_'. Specifying
 	// the 'guess_' prefix will attempt to attach the kprobe to
 	// both of these, returning an error only if both fail.
 	prefix := "guess_"
