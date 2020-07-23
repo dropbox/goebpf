@@ -30,7 +30,7 @@ const (
 )
 
 // Supported ELF section names and function how to create program of it type
-type programCreator func(bp *BaseProgram) Program
+type programCreator func(bp BaseProgram) Program
 
 var sectionNameToProgramType = map[string]programCreator{
 	"xdp":           newXdpProgram,
@@ -373,7 +373,7 @@ func loadPrograms(elfFile *elf.File, maps map[string]Map) (map[string]Program, e
 			name := offsetToNameMap[offset]
 			size := lastOffset - offset
 			// Create Program instance with type based on section name (e.g. XDP)
-			result[name] = createProgram(&BaseProgram{
+			result[name] = createProgram(BaseProgram{
 				name:     name,
 				section:  section.Name,
 				license:  license,

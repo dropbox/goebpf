@@ -63,12 +63,12 @@ func (t SocketFilterAttachType) String() string {
 }
 
 type socketFilterProgram struct {
-	*BaseProgram
+	BaseProgram
 
 	sockFd int
 }
 
-func newSocketFilterProgram(bp *BaseProgram) Program {
+func newSocketFilterProgram(bp BaseProgram) Program {
 	bp.programType = ProgramTypeSocketFilter
 	return &socketFilterProgram{
 		BaseProgram: bp,

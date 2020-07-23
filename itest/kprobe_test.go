@@ -141,7 +141,7 @@ func (ts *kprobeTestSuite) TestKprobeEvents() {
 			case 1:
 				ts.Require().Equal("whoami", cstring(data)) // child comm
 			}
-		case <-time.After(1 * time.Second):
+		case <-time.After(3 * time.Second):
 			ts.Require().Fail("timeout while waiting for perf event")
 		}
 	}

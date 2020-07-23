@@ -69,16 +69,23 @@ import (
 )
 
 const (
+	// namespace provides a unique namespace for kprobe labels
 	namespace          = "goebpf"
+	// sysKprobeEvents
 	sysKprobeEvents    = "/sys/kernel/debug/tracing/kprobe_events"
+	// sysKprobe
 	sysKprobe          = "/sys/kernel/debug/tracing/events"
+	// kretprobeMaxActive 
 	kretprobeMaxActive = 4096
 )
 
 var (
+	// kprobeLock enforces synchronous debugfs reads/writes
 	kprobeLock sync.Mutex
 )
 
+// KprobeAttachType specified whether a Kprobe program is 
+// attached as an entry or exit probe.
 type KprobeAttachType int
 
 const (
@@ -86,6 +93,7 @@ const (
 	KprobeAttachTypeReturn
 )
 
+// Prefix returns the string prefix used by debugfs actions.
 func (t KprobeAttachType) Prefix() string {
 	switch t {
 	case KprobeAttachTypeReturn:
@@ -97,6 +105,7 @@ func (t KprobeAttachType) Prefix() string {
 	}
 }
 
+// String returns a human readable string for a kprobe attach type.
 func (t KprobeAttachType) String() string {
 	switch t {
 	case KprobeAttachTypeEntry:
@@ -108,12 +117,13 @@ func (t KprobeAttachType) String() string {
 	}
 }
 
+// kprobe eBPF program (implements Program interface)
 type kprobeProgram struct {
-	*BaseProgram
+	BaseProgram
 	kprobe *kprobe
 }
 
-func newProbeProgram(bp *BaseProgram, attachType KprobeAttachType) Program {
+func newProbeProgram(bp BaseProgram, attachType KprobeAttachType) Program {
 	// sanity check license
 	if bp.GetLicense() != "GPL" {
 		fmt.Fprintf(os.Stderr, "ERROR: %s program requires license to be 'GPL'.\n", attachType.String())
@@ -138,17 +148,27 @@ func newProbeProgram(bp *BaseProgram, attachType KprobeAttachType) Program {
 	}
 }
 
-func newKprobeProgram(bp *BaseProgram) Program {
+// newKprobeProgram is a helper to create a new kprobe (entry) program.
+func newKprobeProgram(bp BaseProgram) Program {
 	return newProbeProgram(bp, KprobeAttachTypeEntry)
 }
 
-func newKretprobeProgram(bp *BaseProgram) Program {
+// newKretprobeProgram is a helper to create a new kprobe (exit) program.
+func newKretprobeProgram(bp BaseProgram) Program {
 	return newProbeProgram(bp, KprobeAttachTypeReturn)
 }
 
+// Attach attaches eBPF(Kprobe) program to a probe point.
+// There are 2 possible ways to do that:
+//
+// 1. Pass attach point as parameter, e.g.
+//    xdpProgram.Attach("SyS_execve")
+//
+// 2. Using the ebpf program section identifier.
+//    SEC("kprobe/SyS_execve")
 func (p *kprobeProgram) Attach(data interface{}) error {
 
-	// optional symbol override by parameter
+	// (optional) symbol override by parameter
 	switch v := data.(type) {
 	case string:
 		if len(v) > 0 {
@@ -156,10 +176,12 @@ func (p *kprobeProgram) Attach(data interface{}) error {
 		}
 	}
 
+	// attempt to attach kprobe to the symbol provided
 	if err := p.kprobe.Attach(p.GetFd()); err != nil {
 		return err
 	}
 
+	// enable the attached kprobe
 	if err := p.kprobe.Enable(); err != nil {
 		return err
 	}
@@ -167,20 +189,26 @@ func (p *kprobeProgram) Attach(data interface{}) error {
 	return nil
 }
 
+// Detach detaches program from kprobe attach point.
+// Must be previously attached by Attach() call.
 func (p *kprobeProgram) Detach() error {
-	if err := p.kprobe.Disable(); err != nil {
-		fmt.Fprintf(os.Stderr, "p.kprobe.Disable(): %s\n", err)
-	}
+	p.kprobe.Disable()
 	return p.kprobe.Detach()
 }
 
+// kprobe represents an individual kprobe_event handler.
 type kprobe struct {
+	// fd is the file descriptor as returned by debugfs
 	fd         int
+	// event is the kprobe entry as written to debugs
 	event      string
+	// symbol is the target symbol to attach the kprobe to (i.e. SyS_execve)
 	symbol     string
+	// attachType is whether the kprobe is attached to the entry or exit point
 	attachType KprobeAttachType
 }
 
+// newKprobe creates a new kprobe struct and creates debugfs event string.
 func newKprobe(attachType KprobeAttachType, sym string) *kprobe {
 
 	p := &kprobe{
@@ -192,10 +220,14 @@ func newKprobe(attachType KprobeAttachType, sym string) *kprobe {
 	return p
 }
 
+// kprobePath returns the relevant debugfs path for the kprobe.
 func (p *kprobe) kprobePath(cmd string) string {
 	return sysKprobe + "/" + p.attachType.String() + "s/" + p.event + "/" + cmd
 }
 
+// entry returns the relevant debugfs entry formatted string for the kprobe.
+// e.g. r4096:kretprobes/SyS_execve_goebpf_1234 SyS_execve
+//      <type_prefix|maxactive>:<type>/<label> <target_symbol>
 func (p *kprobe) entry() string {
 	prefix := p.attachType.Prefix()
 	if p.attachType == KprobeAttachTypeReturn {
@@ -204,17 +236,21 @@ func (p *kprobe) entry() string {
 	return fmt.Sprintf("%s:%ss/%s %s", prefix, p.attachType.String(), p.event, p.symbol)
 }
 
+// GetFd returns the file descriptor for the kprobe as returned by kprobe_perf_event_open.
 func (p *kprobe) GetFd() int {
 	return p.fd
 }
 
+// GetId returns the kprobe id as returned by debugfs.
 func (p *kprobe) GetId() (int, error) {
 
+	// open debugfs path for this kprobe
 	data, err := ioutil.ReadFile(p.kprobePath("id"))
 	if err != nil {
 		return -1, err
 	}
 
+	// read kprobe id from debugfs
 	id, err := strconv.Atoi(strings.TrimSpace(string(data)))
 	if err != nil {
 		return -1, err
@@ -223,6 +259,7 @@ func (p *kprobe) GetId() (int, error) {
 	return id, nil
 }
 
+// Format returns the debugfs provided format for the kprobe.
 func (p *kprobe) Format() (string, error) {
 
 	data, err := ioutil.ReadFile(p.kprobePath("format"))
@@ -233,6 +270,7 @@ func (p *kprobe) Format() (string, error) {
 	return string(data), nil
 }
 
+// IsEnabled returns the current debugfs /enable state for the kprobe.
 func (p *kprobe) IsEnabled() (bool, error) {
 
 	data, err := ioutil.ReadFile(p.kprobePath("enable"))
@@ -248,6 +286,7 @@ func (p *kprobe) IsEnabled() (bool, error) {
 	return enabled, nil
 }
 
+// Enable sets the /enable flag for the kprobe in debugfs.
 func (p *kprobe) Enable() error {
 	kprobeLock.Lock()
 	defer kprobeLock.Unlock()
@@ -266,6 +305,7 @@ func (p *kprobe) Enable() error {
 	return nil
 }
 
+// Enable clears the /enable flag for the kprobe in debugfs.
 func (p *kprobe) Disable() error {
 	kprobeLock.Lock()
 	defer kprobeLock.Unlock()
@@ -294,8 +334,13 @@ func (p *kprobe) Attach(progFd int) error {
 	}
 	defer f.Close()
 
+	// Helper attach point for basic kernel agnostic programs.
+	// Earlier kernel versions will use the prefix 'SyS_' while 
+	// later kernel versions will use '__x64_sys_'. Specifying 
+	// the 'guess_' prefix will attempt to attach the kprobe to
+	// both of these, returning an error only if both fail.
 	prefix := "guess_"
-	guesses := []string{"SyS_", "__x64_sys_", "do_"}
+	guesses := []string{"SyS_", "__x64_sys_"}
 	var targets []string
 
 	if strings.HasPrefix(p.symbol, prefix) {
@@ -360,6 +405,7 @@ func (p *kprobe) Detach() error {
 	return nil
 }
 
+// ListProbes returns a list of the systems attached kprobes as returned by debugfs.
 func ListProbes() ([]string, error) {
 	data, err := ioutil.ReadFile(sysKprobeEvents)
 	if err != nil {
@@ -368,6 +414,7 @@ func ListProbes() ([]string, error) {
 	return strings.Split(string(data), "\n"), nil
 }
 
+// CleanupProbes attempts to detach all kprobe entries containing our namespace string.
 func CleanupProbes() error {
 
 	probes, err := ListProbes()
