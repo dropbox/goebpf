@@ -27,6 +27,3 @@ script:
   # Travis does not support operations with eBPF, so, just ensure that
   # integration test is compilable Run integration test
   - cd ../itest && make
-
-after_success:
-  - bash <(curl -s https://codecov.io/bash)
