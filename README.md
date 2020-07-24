@@ -81,6 +81,52 @@ And the `go` part:
 ```
 Simple? Check [full XDP dump example](https://github.com/dropbox/goebpf/tree/master/examples/xdp/xdp_dump)
 
+## Kprobes
+Library currently has support for `kprobes` and `kretprobes`.
+It can be as simple as:
+
+```c
+    // kprobe handler function
+    SEC("kprobe/SyS_execve")
+    int execve_entry(struct pt_regs *ctx) {
+
+        // read comm
+        char comm[32];
+        bpf_get_current_comm(&e.comm, sizeof(e.comm));
+
+        // read first argument of execve
+        char filename[64];
+        bpf_probe_read(filename, sizeof(filename), PT_REGS_PARM1(ctx));
+
+        // display execve call details
+        bpf_printk("[exec] comm: '%s', filename: '%s'\n", comm, filename);
+
+        return 0;
+    }
+```
+
+And the `go` part:
+```go
+    // cleanup old probes
+	if err := goebpf.CleanupProbes(); err != nil {
+		log.Println(err)
+	}
+
+	// load ebpf program
+	p, err := LoadProgram("ebpf_prog/kprobe.elf")
+	if err != nil {
+		log.Fatal(err)
+	}
+	p.ShowInfo()
+
+	// attach ebpf kprobes
+	if err := p.AttachProbes(); err != nil {
+		log.Fatal(err)
+	}
+	defer p.DetachProbes()
+```
+Simple? Check [exec dump example](https://github.com/dropbox/goebpf/tree/master/examples/kprobe/exec_dump)
+
 ## Good readings
 - [Cilium BPF and XDP Reference Guide](https://docs.cilium.io/en/latest/bpf/)
 - [Prototype Kernel: XDP](https://prototype-kernel.readthedocs.io/en/latest/networking/XDP/index.html)

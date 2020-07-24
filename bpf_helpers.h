@@ -50,16 +50,16 @@ enum bpf_map_type {
 };
 
 /* flags for BPF_MAP_UPDATE_ELEM command */
-#define BPF_ANY     0 /* create new element or update existing */
+#define BPF_ANY 0     /* create new element or update existing */
 #define BPF_NOEXIST 1 /* create new element if it didn't exist */
-#define BPF_EXIST   2 /* update existing element */
-#define BPF_F_LOCK  4 /* spin_lock-ed map_lookup/map_update */
+#define BPF_EXIST 2   /* update existing element */
+#define BPF_F_LOCK 4  /* spin_lock-ed map_lookup/map_update */
 
 /* BPF_FUNC_perf_event_output, BPF_FUNC_perf_event_read and
  * BPF_FUNC_perf_event_read_value flags.
  */
-#define BPF_F_INDEX_MASK    0xffffffffULL
-#define BPF_F_CURRENT_CPU   BPF_F_INDEX_MASK
+#define BPF_F_INDEX_MASK 0xffffffffULL
+#define BPF_F_CURRENT_CPU BPF_F_INDEX_MASK
 
 // A helper structure used by eBPF C program
 // to describe map attributes to BPF program loader
@@ -94,6 +94,44 @@ enum xdp_action {
 enum socket_filter_action {
   SOCKET_FILTER_DENY = 0,
   SOCKET_FILTER_ALLOW,
+};
+
+// Kprobe required constants / structs
+// (arch/x86/include/asm/ptrace.h)
+#define PT_REGS_PARM1(x) ((x)->di)
+#define PT_REGS_PARM2(x) ((x)->si)
+#define PT_REGS_PARM3(x) ((x)->dx)
+#define PT_REGS_PARM4(x) ((x)->r10)
+#define PT_REGS_PARM5(x) ((x)->r8)
+#define PT_REGS_PARM6(x) ((x)->r9)
+#define PT_REGS_RET(x) ((x)->sp)
+#define PT_REGS_FP(x) ((x)->bp)
+#define PT_REGS_RC(x) ((x)->ax)
+#define PT_REGS_SP(x) ((x)->sp)
+#define PT_REGS_IP(x) ((x)->ip)
+
+struct pt_regs {
+  unsigned long r15;
+  unsigned long r14;
+  unsigned long r13;
+  unsigned long r12;
+  unsigned long bp;
+  unsigned long bx;
+  unsigned long r11;
+  unsigned long r10;
+  unsigned long r9;
+  unsigned long r8;
+  unsigned long ax;
+  unsigned long cx;
+  unsigned long dx;
+  unsigned long si;
+  unsigned long di;
+  unsigned long orig_ax;
+  unsigned long ip;
+  unsigned long cs;
+  unsigned long flags;
+  unsigned long sp;
+  unsigned long ss;
 };
 
 #define bpf_likely(X) __builtin_expect(!!(X), 1)
@@ -157,45 +195,45 @@ struct __sk_buff {
 
   /* Accessed by BPF_PROG_TYPE_sk_skb types from here to ... */
   __u32 family;
-  __u32 remote_ip4;  /* Stored in network byte order */
-  __u32 local_ip4;  /* Stored in network byte order */
-  __u32 remote_ip6[4];  /* Stored in network byte order */
+  __u32 remote_ip4;    /* Stored in network byte order */
+  __u32 local_ip4;     /* Stored in network byte order */
+  __u32 remote_ip6[4]; /* Stored in network byte order */
   __u32 local_ip6[4];  /* Stored in network byte order */
-  __u32 remote_port;  /* Stored in network byte order */
-  __u32 local_port;  /* stored in host byte order */
+  __u32 remote_port;   /* Stored in network byte order */
+  __u32 local_port;    /* stored in host byte order */
   /* ... here. */
 
   __u32 data_meta;
 };
 
 struct bpf_sock_tuple {
-	union {
-		struct {
-			__be32 saddr;
-			__be32 daddr;
-			__be16 sport;
-			__be16 dport;
-		} ipv4;
-		struct {
-			__be32 saddr[4];
-			__be32 daddr[4];
-			__be16 sport;
-			__be16 dport;
-		} ipv6;
-	};
+  union {
+    struct {
+      __be32 saddr;
+      __be32 daddr;
+      __be16 sport;
+      __be16 dport;
+    } ipv4;
+    struct {
+      __be32 saddr[4];
+      __be32 daddr[4];
+      __be16 sport;
+      __be16 dport;
+    } ipv6;
+  };
 };
 
 struct bpf_spin_lock {
-	__u32	val;
+  __u32 val;
 };
 
 struct bpf_sysctl {
-	__u32	write;		/* Sysctl is being read (= 0) or written (= 1).
-				 * Allows 1,2,4-byte read, but no write.
-				 */
-	__u32	file_pos;	/* Sysctl file position to read from, write to.
-				 * Allows 1,2,4-byte read an 4-byte write.
-				 */
+  __u32 write;    /* Sysctl is being read (= 0) or written (= 1).
+                   * Allows 1,2,4-byte read, but no write.
+                   */
+  __u32 file_pos; /* Sysctl file position to read from, write to.
+                   * Allows 1,2,4-byte read an 4-byte write.
+                   */
 };
 
 // BPF helper functions supported on linux kernel 5.2+
@@ -801,8 +839,8 @@ UNUSED static int bpf_xdp_adjust_head(struct xdp_md *ctx, int offset) {
   return 0;
 }
 
-UNUSED static int bpf_perf_event_output(void *ctx, void *map, __u64 index, void *data, __u32 size)
-{
+UNUSED static int bpf_perf_event_output(void *ctx, void *map, __u64 index,
+                                        void *data, __u32 size) {
   return 0;
 }
 

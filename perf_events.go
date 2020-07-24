@@ -100,9 +100,10 @@ func (pe *PerfEvents) StartForAllProcessesAndCPUs(bufferSize int) (<-chan []byte
 
 	// Create perfEvent handler for all possible CPUs
 	var err error
+	var handler *perfEventHandler
 	pe.handlers = make([]*perfEventHandler, nCpus)
 	for cpu := 0; cpu < nCpus; cpu++ {
-		handler, err := newPerfEventHandler(cpu, -1, bufferSize) // All processes
+		handler, err = newPerfEventHandler(cpu, -1, bufferSize) // All processes
 		if err != nil {
 			// Error handling to be done after for loop
 			break

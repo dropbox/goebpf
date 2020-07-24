@@ -119,5 +119,57 @@ A simple example could be to log all TCP SYN packets into user space from XDP pr
 		}
 	}
 
+Kprobes
+
+There are currently two types of supported probes: kprobes, and kretprobes
+(also called return probes). A kprobe can be inserted on virtually
+any instruction in the kernel. A return probe fires when a specified
+function returns.
+
+For example, you can trigger eBPF code to run when a kernel function starts
+by attaching the program to a “kprobe” event. Because it runs in the kernel,
+eBPF code is extremely high performance.
+
+A simple example could be to log all process execution events into user space
+from Kprobe program:
+
+	BPF_MAP_DEF(events) = {
+		.map_type = BPF_MAP_TYPE_PERF_EVENT_ARRAY,
+		.max_entries = 1024,
+	};
+	BPF_MAP_ADD(events);
+
+	SEC("kprobe/guess_execve")
+	int execve_entry(struct pt_regs *ctx) {
+		// ...
+
+		event_t e = {0};
+		e.ktime_ns = bpf_ktime_get_ns();
+		e.pid = bpf_get_current_pid_tgid() >> 32;
+		e.uid = bpf_get_current_uid_gid() >> 32;
+		e.gid = bpf_get_current_uid_gid();
+		bpf_get_current_comm(&e.comm, sizeof(e.comm));
+
+		buf_write(buf, (void *)&e, sizeof(e));
+		buf_strcat(buf, (void *)args[0]);
+		buf_strcat_argv(buf, (void *)args[1]);
+		buf_perf_output(ctx);
+
+		return 0;
+	}
+
+
+	// Cleanup old probes
+	err := goebpf.CleanupProbes()
+
+	// Load eBPF compiled binary
+	bpf := goebpf.NewDefaultEbpfSystem()
+	bpf.LoadElf("kprobe.elf")
+	program := bpf.GetProgramByName("kprobe") // name matches function name in C
+
+	// Attach kprobes
+	err = p.AttachProbes()
+	// Detach them once done
+	defer p.DetachProbes()
 */
 package goebpf

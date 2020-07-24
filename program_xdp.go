@@ -77,14 +77,10 @@ type xdpProgram struct {
 	mode   XdpAttachMode
 }
 
-func newXdpProgram(name, license string, bytecode []byte) Program {
+func newXdpProgram(bp BaseProgram) Program {
+	bp.programType = ProgramTypeXdp
 	return &xdpProgram{
-		BaseProgram: BaseProgram{
-			name:        name,
-			license:     license,
-			bytecode:    bytecode,
-			programType: ProgramTypeXdp,
-		},
+		BaseProgram: bp,
 	}
 }
 

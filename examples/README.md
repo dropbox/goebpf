@@ -7,6 +7,7 @@ Please note that `eBPF` is supported only by Linux, it will not work on `MacOS`!
 - *XDP*: [Simple packets protocol counter](https://github.com/dropbox/goebpf/tree/master/examples/xdp/packet_counter)
 - *XDP*: [Basic Firewall](https://github.com/dropbox/goebpf/tree/master/examples/xdp/basic_firewall)
 - *PerfEvents*: [XDP Dump](https://github.com/dropbox/goebpf/tree/master/examples/xdp/xdp_dump)
+- *Kprobes*: [Exec Dump](https://github.com/dropbox/goebpf/tree/master/examples/kprobe/exec_dump)
 
 ## How to run
 All examples actually contain 2 parts:
