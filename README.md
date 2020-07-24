@@ -13,6 +13,7 @@ A nice and convenient way to work with `eBPF` programs / perf events from Go.
 - eBPF programs
     - `SocketFilter`
     - `XDP`
+    - `Kprobe` / `Kretprobe`
 - Perf Events
 
 Support for other program types / features can be added in future.
@@ -87,43 +88,35 @@ It can be as simple as:
 
 ```c
     // kprobe handler function
-    SEC("kprobe/SyS_execve")
+    SEC("kprobe/guess_execve")
     int execve_entry(struct pt_regs *ctx) {
-
-        // read comm
-        char comm[32];
-        bpf_get_current_comm(&e.comm, sizeof(e.comm));
-
-        // read first argument of execve
-        char filename[64];
-        bpf_probe_read(filename, sizeof(filename), PT_REGS_PARM1(ctx));
-
-        // display execve call details
-        bpf_printk("[exec] comm: '%s', filename: '%s'\n", comm, filename);
-
-        return 0;
+      // ...
+      buf_perf_output(ctx);
+      return 0;
     }
 ```
-
 And the `go` part:
 ```go
-    // cleanup old probes
-	if err := goebpf.CleanupProbes(); err != nil {
-		log.Println(err)
+	// Cleanup old probes
+	err := goebpf.CleanupProbes()
+
+	// Attach all probe programs
+	for _, prog := range bpf.GetPrograms() {
+		err := prog.Attach(nil)
 	}
 
-	// load ebpf program
-	p, err := LoadProgram("ebpf_prog/kprobe.elf")
-	if err != nil {
-		log.Fatal(err)
-	}
-	p.ShowInfo()
+	// Create perf events
+	eventsMap := p.bpf.GetMapByName("events")
+	p.pe, err = goebpf.NewPerfEvents(eventsMap)
+	events, err := p.pe.StartForAllProcessesAndCPUs(4096)
+	defer events.Stop()
 
-	// attach ebpf kprobes
-	if err := p.AttachProbes(); err != nil {
-		log.Fatal(err)
+	for {
+		select {
+		case data := <-events:
+			fmt.Println(data) // kProbe event
+		}
 	}
-	defer p.DetachProbes()
 ```
 Simple? Check [exec dump example](https://github.com/dropbox/goebpf/tree/master/examples/kprobe/exec_dump)
 

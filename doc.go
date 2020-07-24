@@ -142,7 +142,6 @@ from Kprobe program:
 	SEC("kprobe/guess_execve")
 	int execve_entry(struct pt_regs *ctx) {
 		// ...
-
 		event_t e = {0};
 		e.ktime_ns = bpf_ktime_get_ns();
 		e.pid = bpf_get_current_pid_tgid() >> 32;
