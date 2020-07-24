@@ -27,10 +27,7 @@ func (ts *kprobeTestSuite) TestElfLoad() {
 
 	eb := goebpf.NewDefaultEbpfSystem()
 	err := eb.LoadElf(ts.programFilename)
-	ts.NoError(err)
-	if err != nil {
-		ts.FailNowf("Unable to read %s", ts.programFilename)
-	}
+	ts.Require().NoError(err)
 
 	maps := eb.GetMaps()
 	ts.Require().Equal(ts.mapsCount, len(maps))

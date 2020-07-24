@@ -139,15 +139,6 @@ from Kprobe program:
 	};
 	BPF_MAP_ADD(events);
 
-	SEC("xdp")
-	int xdp_dump(struct xdp_md *ctx) {
-		// ...
-		if (tcp->syn) {
-			// Log event to user space
-			bpf_perf_event_output(ctx, &perfmap, BPF_F_CURRENT_CPU, &evt, sizeof(evt));
-		}
-	}
-
 	SEC("kprobe/guess_execve")
 	int execve_entry(struct pt_regs *ctx) {
 		// ...
@@ -168,32 +159,17 @@ from Kprobe program:
 	}
 
 
-	// cleanup old probes
-	if err := goebpf.CleanupProbes(); err != nil {
-		log.Println(err)
-	}
+	// Cleanup old probes
+	err := goebpf.CleanupProbes()
 
-	// load ebpf program
-	p, err := LoadProgram("ebpf_prog/kprobe.elf")
-	if err != nil {
-		log.Fatal(errors.ErrorStack(err))
-	}
-	p.ShowInfo()
+	// Load eBPF compiled binary
+	bpf := goebpf.NewDefaultEbpfSystem()
+	bpf.LoadElf("kprobe.elf")
+	program := bpf.GetProgramByName("kprobe") // name matches function name in C
 
-	// attach ebpf kprobes
-	if err := p.AttachProbes(); err != nil {
-		log.Fatal(errors.ErrorStack(err))
-	}
+	// Attach kprobes
+	err = p.AttachProbes()
+	// Detach them once done
 	defer p.DetachProbes()
-
-	// wait until Ctrl+C pressed
-	ctrlC := make(chan os.Signal, 1)
-	signal.Notify(ctrlC, os.Interrupt)
-	<-ctrlC
-
-	// display some stats
-	fmt.Println()
-	fmt.Printf("%d Event(s) Received\n", p.pe.EventsReceived)
-	fmt.Printf("%d Event(s) lost (e.g. small buffer, delays in processing)\n", p.pe.EventsLost)
 */
 package goebpf
