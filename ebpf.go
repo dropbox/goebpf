@@ -39,6 +39,8 @@ type Program interface {
 	Detach() error
 	// Returns program name as it defined in C code
 	GetName() string
+	// Returns section name for the program
+	GetSection() string
 	// Returns program file descriptor (given by kernel)
 	GetFd() int
 	// Returns size of program in bytes

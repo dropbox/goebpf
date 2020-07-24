@@ -10,21 +10,26 @@ GOGET := $(GOCMD) get
 TEST_SOURCE := $(wildcard *.go)
 TEST_BINARY := ./itest_test
 
-EBPF_SOURCE := ebpf_prog/xdp1.c
-EBPF_BINARY := ebpf_prog/xdp1.elf
+EBPF_XDP_SOURCE := ebpf_prog/xdp1.c
+EBPF_XDP_BINARY := ebpf_prog/xdp1.elf
+EBPF_KPROBE_SOURCE := ebpf_prog/kprobe1.c
+EBPF_KPROBE_BINARY := ebpf_prog/kprobe1.elf
 
 EUID := $(shell id -u -r)
 
 all: build_test build_bpf
 
-$(EBPF_BINARY): $(EBPF_SOURCE)
+$(EBPF_XDP_BINARY): $(EBPF_XDP_SOURCE)
+	clang -I.. -O2 -target bpf -c $^  -o $@
+
+$(EBPF_KPROBE_BINARY): $(EBPF_KPROBE_SOURCE)
 	clang -I.. -O2 -target bpf -c $^  -o $@
 
 $(TEST_BINARY): $(TEST_SOURCE)
 	$(GOTEST) -c -v -o $@
 
 build_test: $(TEST_BINARY)
-build_bpf: $(EBPF_BINARY)
+build_bpf: $(EBPF_XDP_BINARY) $(EBPF_KPROBE_BINARY)
 
 check_root:
 ifneq ($(EUID),0)
@@ -35,7 +40,8 @@ endif
 clean:
 	$(GOCLEAN)
 	rm -f $(TEST_BINARY)
-	rm -f $(EBPF_BINARY)
+	rm -f $(EBPF_XDP_BINARY)
+	rm -f $(EBPF_KPROBE_BINARY)
 
 test: check_root build_bpf build_test
 	@ulimit -l unlimited

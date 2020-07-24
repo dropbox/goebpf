@@ -5,6 +5,7 @@
 *.so
 *.dylib
 *.elf
+*.swp
 itest_test
 
 # Test binary, built with `go test -c`

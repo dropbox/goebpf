@@ -121,7 +121,7 @@ func newPerfEventHandler(cpu, pid int, bufferSize int) (*perfEventHandler, error
 		C.size_t(res.shMemSize),
 		unsafe.Pointer(&errorBuf[0]), C.size_t(unsafe.Sizeof(errorBuf)),
 	)
-	if res.shMem == unsafe.Pointer(uintptr(0)) {
+	if res.shMem == nil {
 		C.close(res.pmuFd)
 		res.pmuFd = 0
 		return nil, fmt.Errorf("Unable to mmap(): %v",
