@@ -6,6 +6,7 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -14,7 +15,6 @@ import (
 	"sync"
 
 	"github.com/dropbox/goebpf"
-	"github.com/juju/errors"
 )
 
 var (
@@ -47,13 +47,13 @@ func main() {
 	// load ebpf program
 	p, err := LoadProgram("ebpf_prog/kprobe.elf")
 	if err != nil {
-		log.Fatal(errors.ErrorStack(err))
+		log.Fatalf("LoadProgram() failed: %v", err)
 	}
 	p.ShowInfo()
 
 	// attach ebpf kprobes
 	if err := p.AttachProbes(); err != nil {
-		log.Fatal(errors.ErrorStack(err))
+		log.Fatalf("AttachProbes() failed: %v", err)
 	}
 	defer p.DetachProbes()
 
@@ -75,13 +75,13 @@ func LoadProgram(filename string) (*Program, error) {
 
 	// load compiled ebpf elf file
 	if err := bpf.LoadElf(filename); err != nil {
-		return nil, errors.Trace(err)
+		return nil, err
 	}
 
 	// load programs
 	for _, prog := range bpf.GetPrograms() {
 		if err := prog.Load(); err != nil {
-			return nil, errors.Trace(err)
+			return nil, err
 		}
 	}
 
@@ -150,25 +150,25 @@ func (p *Program) AttachProbes() error {
 	// attach all probe programs
 	for _, prog := range p.bpf.GetPrograms() {
 		if err := prog.Attach(nil); err != nil {
-			return errors.Trace(err)
+			return err
 		}
 	}
 
 	// get handles to perf event map
 	m := p.bpf.GetMapByName("events")
 	if m == nil {
-		return errors.Trace(ErrMapNotFound)
+		return ErrMapNotFound
 	}
 
 	// create perf events
 	var err error
 	p.pe, err = goebpf.NewPerfEvents(m)
 	if err != nil {
-		return errors.Trace(err)
+		return err
 	}
 	events, err := p.pe.StartForAllProcessesAndCPUs(4096)
 	if err != nil {
-		return errors.Trace(err)
+		return err
 	}
 
 	// start event listeners
