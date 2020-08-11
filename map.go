@@ -680,7 +680,7 @@ func (m *EbpfMap) updateImpl(ikey interface{}, ivalue interface{}, op int) error
 		return err
 	}
 
-	val, err := KeyValueToBytes(ivalue, int(m.ValueSize))
+	val, err := KeyValueToBytes(ivalue, int(m.valueRealSize))
 	if err != nil {
 		return err
 	}
