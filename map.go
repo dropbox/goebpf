@@ -444,12 +444,13 @@ func (m *EbpfMap) Create() error {
 	}
 
 	// Per-CPU maps require extra space to store values from ALL possible CPUs
+	// For access from userspace, each value is padded so that it's a multiple of 8 bytes.
 	if m.isPerCpu() {
 		numCpus, err := GetNumOfPossibleCpus()
 		if err != nil {
 			return err
 		}
-		m.valueRealSize = m.ValueSize * numCpus
+		m.valueRealSize = ((m.ValueSize + 7) / 8) * 8 * numCpus
 	} else {
 		m.valueRealSize = m.ValueSize
 	}
@@ -547,7 +548,7 @@ func (m *EbpfMap) CloneTemplate() Map {
 
 // Lookup performs lookup and returns array of bytes
 // WARNING: For Per-CPU array/hash map return value will contain
-// data from all CPUs, i.e. length = valueSize * nCPU
+// data from all CPUs, i.e. length = roundUp(valueSize, 8) * nCPU
 func (m *EbpfMap) Lookup(ikey interface{}) ([]byte, error) {
 	// Convert key into bytes
 	key, err := KeyValueToBytes(ikey, int(m.KeySize))
