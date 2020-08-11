@@ -398,6 +398,31 @@ func NewMapFromExistingMapById(id int) (*EbpfMap, error) {
 	return NewMapFromExistingMapByFd(int(fd))
 }
 
+// NewMapFromExistingMapMapByPath creates eBPF map from a pinned BPF object path.
+// Pinned BPF object is a kernel mechanism to let non owner process to use BPF objects.
+// Common use case - tooling for troubleshoot / inspect existing BPF objects in the kernel.
+func NewMapFromExistingMapByPath(path string) (*EbpfMap, error) {
+	var logBuf [errCodeBufferSize]byte
+
+	pathStr := C.CString(path)
+	defer C.free(unsafe.Pointer(pathStr))
+	fd := C.ebpf_obj_get(pathStr,
+		unsafe.Pointer(&logBuf[0]), C.size_t(unsafe.Sizeof(logBuf)),
+	)
+	if fd == -1 {
+		return nil, fmt.Errorf("ebpf_obj_get() failed: %v",
+			NullTerminatedStringToString(logBuf[:]))
+	}
+
+	m, err := NewMapFromExistingMapByFd(int(fd))
+	if err != nil {
+		return m, err
+	}
+
+	m.PersistentPath = path
+	return m, err
+}
+
 // If map type is Per-CPU based
 func (m *EbpfMap) isPerCpu() bool {
 	return m.Type == MapTypePerCPUArray ||
