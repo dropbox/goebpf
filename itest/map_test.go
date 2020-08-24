@@ -443,6 +443,36 @@ func (ts *mapTestSuite) TestMapFromExistingByFd() {
 	ts.Equal(m1, m2)
 }
 
+func (ts *mapTestSuite) TestGetNextKey() {
+	// Create map
+	m := &goebpf.EbpfMap{
+		Type:       goebpf.MapTypeHash,
+		KeySize:    8,
+		ValueSize:  8,
+		MaxEntries: 10,
+	}
+	err := m.Create()
+	ts.NoError(err)
+
+	keys := []string{"key1", "key2", "key3"}
+
+	// Insert items into hash map
+	for index, key := range keys {
+		err = m.Insert(key, index)
+		ts.NoError(err)
+	}
+	key_to_get := ""
+	for index, k := range keys {
+		_, err := m.GetNextKey(key_to_get)
+		if index+1 == len(keys) {
+			ts.Error(err)
+		}
+		key_to_get = string(k)
+	}
+	ts.NoError(err)
+
+}
+
 // Run suite
 func TestMapSuite(t *testing.T) {
 	suite.Run(t, new(mapTestSuite))

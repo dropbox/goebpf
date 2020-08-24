@@ -734,7 +734,7 @@ func (m *EbpfMap) GetNextKey(ikey interface{}) ([]byte, error) {
 			NullTerminatedStringToString(logBuf[:]))
 	}
 
-	return val, nil
+	return nextkey, nil
 }
 
 // GetFd returns fd (file descriptor) of eBPF map
