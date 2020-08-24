@@ -73,6 +73,8 @@ type Map interface {
 	Update(interface{}, interface{}) error
 	Upsert(interface{}, interface{}) error
 	Delete(interface{}) error
+	// Implementation of bpf_map_get_next_key
+	GetNextKey(interface{}) ([]byte, error)
 }
 
 const (

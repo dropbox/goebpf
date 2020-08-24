@@ -125,6 +125,19 @@ static int ebpf_obj_get_info_by_fd(__u32 fd, void *info, __u32 info_len,
 	return res;
 }
 
+static int ebpf_map_get_next_key(__u32 fd, const void *key, void *next_key,
+		void *log_buf, size_t log_size)
+{
+	union bpf_attr attr = {};
+
+	attr.map_fd = fd;
+	attr.key = ptr_to_u64(key);
+	attr.next_key = ptr_to_u64(next_key);
+
+	int res = SYSCALL_BPF(BPF_MAP_GET_NEXT_KEY);
+	strncpy(log_buf, strerror(errno), log_size);
+	return res;
+}
 
 */
 import "C"
@@ -695,6 +708,33 @@ func (m *EbpfMap) Delete(ikey interface{}) error {
 	}
 
 	return nil
+}
+
+// GetNextKey looks up next key in the map.
+// returns 'next_key' on success, 'err' on failure (or last key in map - no next key available).
+func (m *EbpfMap) GetNextKey(ikey interface{}) ([]byte, error) {
+	// Convert key into bytes
+	key, err := KeyValueToBytes(ikey, int(m.KeySize))
+	if err != nil {
+		return nil, err
+	}
+
+	var nextkey = make([]byte, m.KeySize)
+	var logBuf [errCodeBufferSize]byte
+
+	res := int(C.ebpf_map_get_next_key(
+		C.__u32(m.fd),
+		unsafe.Pointer(&key[0]),
+		unsafe.Pointer(&nextkey[0]),
+		unsafe.Pointer(&logBuf[0]),
+		C.size_t(unsafe.Sizeof(logBuf))))
+
+	if res == -1 {
+		return nil, fmt.Errorf("ebpf_map_get_next_key() failed: %s",
+			NullTerminatedStringToString(logBuf[:]))
+	}
+
+	return val, nil
 }
 
 // GetFd returns fd (file descriptor) of eBPF map
