@@ -97,6 +97,22 @@ static void *bpf_find_item_by_key(struct __create_map_def *map, const void *key)
 	return item;
 }
 
+static void *bpf_find_next_item_by_key(struct __create_map_def *map, const void *key)
+{
+	// Simple linear search: iterate by all items and compare key, O(n)
+	// this will get the next element after the match
+	struct bpf_map_item *item = NULL;
+	int found = 0;
+	SLIST_FOREACH(item, (struct bpf_map_data_head*)&map->map_data, next) {
+		if (memcmp(key, item->key, map->map_def->key_size) == 0) {
+			// Key match, found!
+			return (void*)&item->next;
+		}
+	}
+	struct bpf_map_data_head *head = (struct bpf_map_data_head*) &map->map_data;
+	return SLIST_FIRST(head);
+}
+
 static void* bpf_map_create(__u32 map_type, __u32 key_size, __u32 value_size, __u32 max_entries)
 {
 	// Allocate structure to store information about new map (usually done by BPF_MAP_ADD() macro)
@@ -211,6 +227,27 @@ int bpf_map_update_elem(const void *fd, const void *key, const void *value, __u6
 
 	// Update item's value
 	memcpy(item->value, value, map->map_def->value_size);
+
+	return 0;
+}
+
+int bpf_map_get_next_key(const void *fd, const void *key, const void *next_key)
+{
+	struct __create_map_def *map = bpf_map_find(fd);
+
+	// If map not found
+	if (!map) {
+		return -1;
+	}
+
+	// get next key following provided key
+	struct bpf_map_item *item = bpf_find_next_item_by_key(map, key);
+
+	if (!item) {
+		return -1;
+	}
+
+	memcpy(item->key, next_key, map->map_def->key_size);
 
 	return 0;
 }
@@ -509,6 +546,28 @@ func (m *MockMap) Delete(ikey interface{}) error {
 	}
 
 	return nil
+}
+
+// GetNextKey gets the next key of the provided key
+func (m *MockMap) GetNextKey(ikey interface{}) ([]byte, error) {
+	// Convert key into bytes
+	key, err := goebpf.KeyValueToBytes(ikey, m.KeySize)
+	if err != nil {
+		return nil, err
+	}
+
+	// Buffer where C part will copy value into
+	var nextkey = make([]byte, m.ValueSize)
+	res := C.bpf_map_get_next_key(m.fd,
+		unsafe.Pointer(&key[0]),
+		unsafe.Pointer(&nextkey[0]),
+	)
+
+	if res != 0 {
+		return nil, errors.New("bpf_map_get_next_key() failed (not found?)")
+	}
+
+	return nextkey, nil
 }
 
 // GetFd returns mock file descriptor of map
