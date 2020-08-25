@@ -817,7 +817,7 @@ void *bpf_map_lookup_elem(const void *map, const void *key);
 int bpf_map_update_elem(const void *map, const void *key, const void *value,
                         __u64 flags);
 int bpf_map_delete_elem(const void *map, const void *key);
-int bpf_map_get_next_key(const void *map, const void *key, const void *next_key);
+int bpf_map_get_next_key(const void *map, void *key, void *next_key);
 
 // bpf_printk() is just printf()
 #define bpf_printk(fmt, ...)  \

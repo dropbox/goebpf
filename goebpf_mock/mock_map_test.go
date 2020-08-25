@@ -197,3 +197,35 @@ func TestArrayOfMaps(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, inner.GetFd(), fd)
 }
+
+func TestGetNextKey(t *testing.T) {
+	// Create map
+	m := MockMap{
+		Type:       goebpf.MapTypeHash,
+		KeySize:    4,
+		ValueSize:  4,
+		MaxEntries: 10,
+	}
+	err := m.Create()
+	assert.NoError(t, err)
+
+	keys := []string{"key1", "key2", "key3"}
+
+	// Insert items into hash map
+	for index, key := range keys {
+		err = m.Insert(key, index)
+		assert.NoError(t, err)
+	}
+	key_to_get := ""
+	for i := len(keys); i >= 0; i-- {
+		k, err := m.GetNextKey(key_to_get)
+		if i == 0 {
+			assert.Error(t, err)
+		} else {
+			assert.NoError(t, err)
+		}
+		key_to_get = string(k)
+	}
+	assert.NoError(t, err)
+
+}

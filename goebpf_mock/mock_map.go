@@ -99,17 +99,19 @@ static void *bpf_find_item_by_key(struct __create_map_def *map, const void *key)
 
 static void *bpf_find_next_item_by_key(struct __create_map_def *map, const void *key)
 {
-	// Simple linear search: iterate by all items and compare key, O(n)
-	// this will get the next element after the match
+	struct bpf_map_data_head *head = (struct bpf_map_data_head*) &map->map_data;
 	struct bpf_map_item *item = NULL;
-	int found = 0;
-	SLIST_FOREACH(item, (struct bpf_map_data_head*)&map->map_data, next) {
+	SLIST_FOREACH(item, head, next) {
 		if (memcmp(key, item->key, map->map_def->key_size) == 0) {
-			// Key match, found!
-			return (void*)&item->next;
+			struct bpf_map_item *nextitem = SLIST_NEXT(item, next);
+			// if next key points to the head (first item), return NULL
+			if ((void *)nextitem == (void*)item) {
+				return NULL;
+			}
+			return nextitem;
 		}
 	}
-	struct bpf_map_data_head *head = (struct bpf_map_data_head*) &map->map_data;
+	// if no match, return first item
 	return SLIST_FIRST(head);
 }
 
@@ -231,7 +233,7 @@ int bpf_map_update_elem(const void *fd, const void *key, const void *value, __u6
 	return 0;
 }
 
-int bpf_map_get_next_key(const void *fd, const void *key, const void *next_key)
+int bpf_map_get_next_key(const void *fd, void *key, void *next_key)
 {
 	struct __create_map_def *map = bpf_map_find(fd);
 
@@ -247,7 +249,7 @@ int bpf_map_get_next_key(const void *fd, const void *key, const void *next_key)
 		return -1;
 	}
 
-	memcpy(item->key, next_key, map->map_def->key_size);
+	memcpy(next_key, item->key, map->map_def->key_size);
 
 	return 0;
 }
@@ -555,16 +557,14 @@ func (m *MockMap) GetNextKey(ikey interface{}) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	// Buffer where C part will copy value into
-	var nextkey = make([]byte, m.ValueSize)
+	var nextkey = make([]byte, m.KeySize)
 	res := C.bpf_map_get_next_key(m.fd,
 		unsafe.Pointer(&key[0]),
 		unsafe.Pointer(&nextkey[0]),
 	)
 
 	if res != 0 {
-		return nil, errors.New("bpf_map_get_next_key() failed (not found?)")
+		return nil, errors.New("bpf_map_get_next_key() failed (last key?)")
 	}
 
 	return nextkey, nil
