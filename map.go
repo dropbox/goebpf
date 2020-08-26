@@ -719,13 +719,13 @@ func (m *EbpfMap) GetNextKey(ikey interface{}) ([]byte, error) {
 		return nil, err
 	}
 
-	var nextkey = make([]byte, m.KeySize)
+	var nextKey = make([]byte, m.KeySize)
 	var logBuf [errCodeBufferSize]byte
 
 	res := int(C.ebpf_map_get_next_key(
 		C.__u32(m.fd),
 		unsafe.Pointer(&key[0]),
-		unsafe.Pointer(&nextkey[0]),
+		unsafe.Pointer(&nextKey[0]),
 		unsafe.Pointer(&logBuf[0]),
 		C.size_t(unsafe.Sizeof(logBuf))))
 
@@ -734,7 +734,31 @@ func (m *EbpfMap) GetNextKey(ikey interface{}) ([]byte, error) {
 			NullTerminatedStringToString(logBuf[:]))
 	}
 
-	return nextkey, nil
+	return nextKey, nil
+}
+
+func (m *EbpfMap) GetNextKeyString(ikey interface{}) (string, error) {
+	nextKey, err := m.GetNextKey(ikey)
+	if err != nil {
+		return "", err
+	}
+	return NullTerminatedStringToString(nextKey), nil
+}
+
+func (m *EbpfMap) GetNextKeyInt(ikey interface{}) (int, error) {
+	nextKey, err := m.GetNextKeyUint64(ikey)
+	return int(nextKey), err
+}
+
+func (m *EbpfMap) GetNextKeyUint64(ikey interface{}) (uint64, error) {
+	if m.KeySize > 8 {
+		return 0, errors.New("Value is too large to fit int")
+	}
+	nextKey, err := m.GetNextKey(ikey)
+	if err != nil {
+		return 0, err
+	}
+	return m.parseFlexibleMultiInteger(nextKey), nil
 }
 
 // GetFd returns fd (file descriptor) of eBPF map

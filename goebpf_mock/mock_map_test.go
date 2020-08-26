@@ -198,7 +198,7 @@ func TestArrayOfMaps(t *testing.T) {
 	assert.Equal(t, inner.GetFd(), fd)
 }
 
-func TestGetNextKey(t *testing.T) {
+func TestGetNextKeyString(t *testing.T) {
 	// Create map
 	m := MockMap{
 		Type:       goebpf.MapTypeHash,
@@ -209,23 +209,53 @@ func TestGetNextKey(t *testing.T) {
 	err := m.Create()
 	assert.NoError(t, err)
 
-	keys := []string{"key1", "key2", "key3"}
+	mapData := map[string]string{"key1": "val1", "key2": "val2", "key3": "val3"}
 
 	// Insert items into hash map
-	for index, key := range keys {
-		err = m.Insert(key, index)
+	for key, value := range mapData {
+		err = m.Insert(key, value)
 		assert.NoError(t, err)
 	}
-	key_to_get := ""
-	for i := len(keys); i >= 0; i-- {
-		k, err := m.GetNextKey(key_to_get)
-		if i == 0 {
-			assert.Error(t, err)
-		} else {
-			assert.NoError(t, err)
+	var currentKey string
+	for {
+		nextKey, err := m.GetNextKeyString(currentKey)
+		if err != nil {
+			break
 		}
-		key_to_get = string(k)
+		val, err := m.LookupString(nextKey)
+		assert.NoError(t, err)
+		assert.Equal(t, mapData[nextKey], string(val))
+		currentKey = nextKey
 	}
+}
+
+func TestGetNextKeyInt(t *testing.T) {
+	// Create map
+	m := MockMap{
+		Type:       goebpf.MapTypeHash,
+		KeySize:    4,
+		ValueSize:  4,
+		MaxEntries: 10,
+	}
+	err := m.Create()
 	assert.NoError(t, err)
 
+	mapData := map[int]int{1234: 4321, 5678: 8765, 9012: 2109}
+
+	// Insert items into hash map
+	for key, value := range mapData {
+		err = m.Insert(key, value)
+		assert.NoError(t, err)
+	}
+	var currentKey int
+	for {
+		nextKey, err := m.GetNextKeyInt(currentKey)
+		if err != nil {
+			break
+		}
+		val, err := m.LookupInt(nextKey)
+		assert.NoError(t, err)
+		assert.Equal(t, mapData[nextKey], int(val))
+		currentKey = nextKey
+	}
 }

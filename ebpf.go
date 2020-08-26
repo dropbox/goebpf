@@ -75,6 +75,9 @@ type Map interface {
 	Delete(interface{}) error
 	// Implementation of bpf_map_get_next_key
 	GetNextKey(interface{}) ([]byte, error)
+	GetNextKeyString(interface{}) (string, error)
+	GetNextKeyInt(interface{}) (int, error)
+	GetNextKeyUint64(interface{}) (uint64, error)
 }
 
 const (

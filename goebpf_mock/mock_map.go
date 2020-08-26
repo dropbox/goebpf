@@ -557,17 +557,41 @@ func (m *MockMap) GetNextKey(ikey interface{}) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	var nextkey = make([]byte, m.KeySize)
+	var nextKey = make([]byte, m.KeySize)
 	res := C.bpf_map_get_next_key(m.fd,
 		unsafe.Pointer(&key[0]),
-		unsafe.Pointer(&nextkey[0]),
+		unsafe.Pointer(&nextKey[0]),
 	)
 
 	if res != 0 {
 		return nil, errors.New("bpf_map_get_next_key() failed (last key?)")
 	}
 
-	return nextkey, nil
+	return nextKey, nil
+}
+
+func (m *MockMap) GetNextKeyString(ikey interface{}) (string, error) {
+	nextKey, err := m.GetNextKey(ikey)
+	if err != nil {
+		return "", err
+	}
+	return goebpf.NullTerminatedStringToString(nextKey), nil
+}
+
+func (m *MockMap) GetNextKeyInt(ikey interface{}) (int, error) {
+	nextKey, err := m.GetNextKeyUint64(ikey)
+	return int(nextKey), err
+}
+
+func (m *MockMap) GetNextKeyUint64(ikey interface{}) (uint64, error) {
+	if m.KeySize > 8 {
+		return 0, errors.New("Value is too large to fit int")
+	}
+	nextKey, err := m.GetNextKey(ikey)
+	if err != nil {
+		return 0, err
+	}
+	return goebpf.ParseFlexibleIntegerLittleEndian(nextKey), nil
 }
 
 // GetFd returns mock file descriptor of map
