@@ -243,6 +243,7 @@ struct bpf_sysctl {
      FN(map_lookup_elem),           \
      FN(map_update_elem),           \
      FN(map_delete_elem),           \
+     FN(map_get_next_key),          \
      FN(probe_read),                \
      FN(ktime_get_ns),              \
      FN(trace_printk),              \
@@ -382,6 +383,11 @@ static int (*bpf_map_update_elem)(const void *map, const void *key,
 // Return: 0 on success or negative error
 static int (*bpf_map_delete_elem)(const void *map, void *key) = (void *)  // NOLINT
     BPF_FUNC_map_delete_elem;
+
+// Get next key gets the next key in the map.
+// Return: 0 on success or negative on error
+static int (*bpf_map_get_next_key)(const void *map, const void *key, const void *next_key) = (void *)  // NOLINT
+    BPF_FUNC_map_get_next_key;
 
 static int (*bpf_probe_read)(void *dst, __u64 size, const void *unsafe_ptr) = (void *) // NOLINT
     BPF_FUNC_probe_read;
@@ -811,6 +817,7 @@ void *bpf_map_lookup_elem(const void *map, const void *key);
 int bpf_map_update_elem(const void *map, const void *key, const void *value,
                         __u64 flags);
 int bpf_map_delete_elem(const void *map, const void *key);
+int bpf_map_get_next_key(const void *map, void *key, void *next_key);
 
 // bpf_printk() is just printf()
 #define bpf_printk(fmt, ...)  \

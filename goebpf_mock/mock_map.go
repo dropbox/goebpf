@@ -97,6 +97,24 @@ static void *bpf_find_item_by_key(struct __create_map_def *map, const void *key)
 	return item;
 }
 
+static void *bpf_find_next_item_by_key(struct __create_map_def *map, const void *key)
+{
+	struct bpf_map_data_head *head = (struct bpf_map_data_head*) &map->map_data;
+	struct bpf_map_item *item = NULL;
+	SLIST_FOREACH(item, head, next) {
+		if (memcmp(key, item->key, map->map_def->key_size) == 0) {
+			struct bpf_map_item *nextitem = SLIST_NEXT(item, next);
+			// if next key points to the head (first item), return NULL
+			if ((void *)nextitem == (void*)item) {
+				return NULL;
+			}
+			return nextitem;
+		}
+	}
+	// if no match, return first item
+	return SLIST_FIRST(head);
+}
+
 static void* bpf_map_create(__u32 map_type, __u32 key_size, __u32 value_size, __u32 max_entries)
 {
 	// Allocate structure to store information about new map (usually done by BPF_MAP_ADD() macro)
@@ -211,6 +229,27 @@ int bpf_map_update_elem(const void *fd, const void *key, const void *value, __u6
 
 	// Update item's value
 	memcpy(item->value, value, map->map_def->value_size);
+
+	return 0;
+}
+
+int bpf_map_get_next_key(const void *fd, void *key, void *next_key)
+{
+	struct __create_map_def *map = bpf_map_find(fd);
+
+	// If map not found
+	if (!map) {
+		return -1;
+	}
+
+	// get next key following provided key
+	struct bpf_map_item *item = bpf_find_next_item_by_key(map, key);
+
+	if (!item) {
+		return -1;
+	}
+
+	memcpy(next_key, item->key, map->map_def->key_size);
 
 	return 0;
 }
@@ -509,6 +548,50 @@ func (m *MockMap) Delete(ikey interface{}) error {
 	}
 
 	return nil
+}
+
+// GetNextKey gets the next key of the provided key
+func (m *MockMap) GetNextKey(ikey interface{}) ([]byte, error) {
+	// Convert key into bytes
+	key, err := goebpf.KeyValueToBytes(ikey, m.KeySize)
+	if err != nil {
+		return nil, err
+	}
+	var nextKey = make([]byte, m.KeySize)
+	res := C.bpf_map_get_next_key(m.fd,
+		unsafe.Pointer(&key[0]),
+		unsafe.Pointer(&nextKey[0]),
+	)
+
+	if res != 0 {
+		return nil, errors.New("bpf_map_get_next_key() failed (last key?)")
+	}
+
+	return nextKey, nil
+}
+
+func (m *MockMap) GetNextKeyString(ikey interface{}) (string, error) {
+	nextKey, err := m.GetNextKey(ikey)
+	if err != nil {
+		return "", err
+	}
+	return goebpf.NullTerminatedStringToString(nextKey), nil
+}
+
+func (m *MockMap) GetNextKeyInt(ikey interface{}) (int, error) {
+	nextKey, err := m.GetNextKeyUint64(ikey)
+	return int(nextKey), err
+}
+
+func (m *MockMap) GetNextKeyUint64(ikey interface{}) (uint64, error) {
+	if m.KeySize > 8 {
+		return 0, errors.New("Value is too large to fit int")
+	}
+	nextKey, err := m.GetNextKey(ikey)
+	if err != nil {
+		return 0, err
+	}
+	return goebpf.ParseFlexibleIntegerLittleEndian(nextKey), nil
 }
 
 // GetFd returns mock file descriptor of map
