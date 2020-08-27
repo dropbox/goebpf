@@ -209,7 +209,13 @@ func TestGetNextKeyString(t *testing.T) {
 	err := m.Create()
 	assert.NoError(t, err)
 
-	mapData := map[string]string{"key1": "val1", "key2": "val2", "key3": "val3"}
+	mapData := map[string]string{
+		"key1": "val1",
+		"key2": "val2",
+		"key3": "val3",
+	}
+
+	result := map[string]string{}
 
 	// Insert items into hash map
 	for key, value := range mapData {
@@ -225,8 +231,10 @@ func TestGetNextKeyString(t *testing.T) {
 		val, err := m.LookupString(nextKey)
 		assert.NoError(t, err)
 		assert.Equal(t, mapData[nextKey], string(val))
+		result[nextKey] = val
 		currentKey = nextKey
 	}
+	assert.Equal(t, mapData, result)
 }
 
 func TestGetNextKeyInt(t *testing.T) {
@@ -240,7 +248,13 @@ func TestGetNextKeyInt(t *testing.T) {
 	err := m.Create()
 	assert.NoError(t, err)
 
-	mapData := map[int]int{1234: 4321, 5678: 8765, 9012: 2109}
+	mapData := map[int]int{
+		1234: 4321,
+		5678: 8765,
+		9012: 2109,
+	}
+
+	result := map[int]int{}
 
 	// Insert items into hash map
 	for key, value := range mapData {
@@ -256,6 +270,8 @@ func TestGetNextKeyInt(t *testing.T) {
 		val, err := m.LookupInt(nextKey)
 		assert.NoError(t, err)
 		assert.Equal(t, mapData[nextKey], int(val))
+		result[nextKey] = val
 		currentKey = nextKey
 	}
+	assert.Equal(t, mapData, result)
 }

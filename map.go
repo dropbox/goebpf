@@ -737,6 +737,8 @@ func (m *EbpfMap) GetNextKey(ikey interface{}) ([]byte, error) {
 	return nextKey, nil
 }
 
+// GetNextKeyString looks up next key in the map and returns it
+// as a golang string.
 func (m *EbpfMap) GetNextKeyString(ikey interface{}) (string, error) {
 	nextKey, err := m.GetNextKey(ikey)
 	if err != nil {
@@ -745,11 +747,15 @@ func (m *EbpfMap) GetNextKeyString(ikey interface{}) (string, error) {
 	return NullTerminatedStringToString(nextKey), nil
 }
 
+// GetNextKeyInt looks up next key in the map and returns it
+// as int.
 func (m *EbpfMap) GetNextKeyInt(ikey interface{}) (int, error) {
 	nextKey, err := m.GetNextKeyUint64(ikey)
 	return int(nextKey), err
 }
 
+// GetNextKeyUint64 looks up next key in the map and returns it
+// as uint64.
 func (m *EbpfMap) GetNextKeyUint64(ikey interface{}) (uint64, error) {
 	if m.KeySize > 8 {
 		return 0, errors.New("Value is too large to fit int")
