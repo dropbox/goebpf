@@ -125,6 +125,19 @@ static int ebpf_obj_get_info_by_fd(__u32 fd, void *info, __u32 info_len,
 	return res;
 }
 
+static int ebpf_map_get_next_key(__u32 fd, const void *key, void *next_key,
+		void *log_buf, size_t log_size)
+{
+	union bpf_attr attr = {};
+
+	attr.map_fd = fd;
+	attr.key = ptr_to_u64(key);
+	attr.next_key = ptr_to_u64(next_key);
+
+	int res = SYSCALL_BPF(BPF_MAP_GET_NEXT_KEY);
+	strncpy(log_buf, strerror(errno), log_size);
+	return res;
+}
 
 */
 import "C"
@@ -695,6 +708,63 @@ func (m *EbpfMap) Delete(ikey interface{}) error {
 	}
 
 	return nil
+}
+
+// GetNextKey looks up next key in the map.
+// returns 'next_key' on success, 'err' on failure (or last key in map - no next key available).
+func (m *EbpfMap) GetNextKey(ikey interface{}) ([]byte, error) {
+	// Convert key into bytes
+	key, err := KeyValueToBytes(ikey, int(m.KeySize))
+	if err != nil {
+		return nil, err
+	}
+
+	var nextKey = make([]byte, m.KeySize)
+	var logBuf [errCodeBufferSize]byte
+
+	res := int(C.ebpf_map_get_next_key(
+		C.__u32(m.fd),
+		unsafe.Pointer(&key[0]),
+		unsafe.Pointer(&nextKey[0]),
+		unsafe.Pointer(&logBuf[0]),
+		C.size_t(unsafe.Sizeof(logBuf))))
+
+	if res == -1 {
+		return nil, fmt.Errorf("ebpf_map_get_next_key() failed: %s",
+			NullTerminatedStringToString(logBuf[:]))
+	}
+
+	return nextKey, nil
+}
+
+// GetNextKeyString looks up next key in the map and returns it
+// as a golang string.
+func (m *EbpfMap) GetNextKeyString(ikey interface{}) (string, error) {
+	nextKey, err := m.GetNextKey(ikey)
+	if err != nil {
+		return "", err
+	}
+	return NullTerminatedStringToString(nextKey), nil
+}
+
+// GetNextKeyInt looks up next key in the map and returns it
+// as int.
+func (m *EbpfMap) GetNextKeyInt(ikey interface{}) (int, error) {
+	nextKey, err := m.GetNextKeyUint64(ikey)
+	return int(nextKey), err
+}
+
+// GetNextKeyUint64 looks up next key in the map and returns it
+// as uint64.
+func (m *EbpfMap) GetNextKeyUint64(ikey interface{}) (uint64, error) {
+	if m.KeySize > 8 {
+		return 0, errors.New("Value is too large to fit int")
+	}
+	nextKey, err := m.GetNextKey(ikey)
+	if err != nil {
+		return 0, err
+	}
+	return m.parseFlexibleMultiInteger(nextKey), nil
 }
 
 // GetFd returns fd (file descriptor) of eBPF map
