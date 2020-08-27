@@ -443,6 +443,84 @@ func (ts *mapTestSuite) TestMapFromExistingByFd() {
 	ts.Equal(m1, m2)
 }
 
+func (ts *mapTestSuite) TestGetNextKeyString() {
+	// Create map
+	m := &goebpf.EbpfMap{
+		Type:       goebpf.MapTypeHash,
+		KeySize:    8,
+		ValueSize:  8,
+		MaxEntries: 10,
+	}
+	err := m.Create()
+	ts.NoError(err)
+
+	mapData := map[string]string{
+		"key1": "val1",
+		"key2": "val2",
+		"key3": "val3",
+	}
+
+	result := map[string]string{}
+
+	// Insert items into hash map
+	for key, value := range mapData {
+		err = m.Insert(key, value)
+		ts.NoError(err)
+	}
+	var currentKey string
+	for {
+		nextKey, err := m.GetNextKeyString(currentKey)
+		if err != nil {
+			break
+		}
+		val, err := m.LookupString(nextKey)
+		ts.NoError(err)
+		ts.Equal(mapData[nextKey], string(val))
+		result[nextKey] = val
+		currentKey = nextKey
+	}
+	ts.Equal(mapData, result)
+}
+
+func (ts *mapTestSuite) TestGetNextKeyInt() {
+	// Create map
+	m := &goebpf.EbpfMap{
+		Type:       goebpf.MapTypeHash,
+		KeySize:    8,
+		ValueSize:  8,
+		MaxEntries: 10,
+	}
+	err := m.Create()
+	ts.NoError(err)
+
+	mapData := map[int]int{
+		1234: 4321,
+		5678: 8765,
+		9012: 2109,
+	}
+
+	result := map[int]int{}
+
+	// Insert items into hash map
+	for key, value := range mapData {
+		err = m.Insert(key, value)
+		ts.NoError(err)
+	}
+	var currentKey int
+	for {
+		nextKey, err := m.GetNextKeyInt(currentKey)
+		if err != nil {
+			break
+		}
+		val, err := m.LookupInt(nextKey)
+		ts.NoError(err)
+		ts.Equal(mapData[nextKey], int(val))
+		result[nextKey] = val
+		currentKey = nextKey
+	}
+	ts.Equal(mapData, result)
+}
+
 // Run suite
 func TestMapSuite(t *testing.T) {
 	suite.Run(t, new(mapTestSuite))
