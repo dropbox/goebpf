@@ -4,6 +4,7 @@
 package itest
 
 import (
+	"encoding/binary"
 	"os"
 	"testing"
 
@@ -519,6 +520,83 @@ func (ts *mapTestSuite) TestGetNextKeyInt() {
 		currentKey = nextKey
 	}
 	ts.Equal(mapData, result)
+}
+
+func (ts *mapTestSuite) TestMapFromExistingByPath() {
+	path := bpfPath + "/test"
+
+	// Make sure we're not loading an old map
+	os.Remove(path)
+	ts.NoFileExists(path)
+
+	// Create map which will be used to create new from
+	m1 := &goebpf.EbpfMap{
+		Name:           "test",
+		Type:           goebpf.MapTypeArray,
+		ValueSize:      4,
+		MaxEntries:     4,
+		PersistentPath: path,
+	}
+	err := m1.Create()
+	ts.NoError(err)
+
+	// Create map structure from already existing map in kernel by its path
+	m2, err := goebpf.NewMapFromExistingMapByPath(m1.PersistentPath)
+	ts.NoError(err)
+
+	// Insert to the original map object
+	err = m1.Update(2, 1337)
+	ts.NoError(err)
+
+	// Lookup from the newly opened map object
+	res, err := m2.LookupInt(2)
+	ts.NoError(err)
+	ts.Equal(1337, res)
+
+	// The map should be the same except for the fd
+	ts.Equal(m1.Name, m2.Name)
+	ts.Equal(m1.Type, m2.Type)
+	ts.Equal(m1.ValueSize, m2.ValueSize)
+	ts.Equal(m1.MaxEntries, m2.MaxEntries)
+	ts.Equal(m1.MaxEntries, m2.MaxEntries)
+	ts.Equal(m1.PersistentPath, m2.PersistentPath)
+
+	os.Remove(path)
+}
+
+func (ts *mapTestSuite) TestMapPerCpuValues() {
+	// Create a map with percpu values
+	m := &goebpf.EbpfMap{
+		Name:       "test",
+		Type:       goebpf.MapTypePerCPUHash,
+		KeySize:    4,
+		ValueSize:  4,
+		MaxEntries: 16,
+	}
+	err := m.Create()
+	ts.NoError(err)
+
+	// Prepare values for insert
+	numCpus, err := goebpf.GetNumOfPossibleCpus()
+	ts.NoError(err)
+
+	// The values need to be padded to 8 bytes
+	val := make([]byte, 8*numCpus)
+	for i := 0; i < numCpus; i++ {
+		binary.LittleEndian.PutUint32(val[i*8:i*8+4], uint32(i))
+	}
+
+	// Insert the values
+	err = m.Insert("str1", val)
+	ts.NoError(err)
+
+	// Lookup the inserted values
+	bval, err := m.Lookup("str1")
+	ts.NoError(err)
+	for i := 0; i < numCpus; i++ {
+		v := binary.LittleEndian.Uint32(bval[i*8 : i*8+4])
+		ts.EqualValues(i, v)
+	}
 }
 
 // Run suite
