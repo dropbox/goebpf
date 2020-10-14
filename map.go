@@ -364,7 +364,7 @@ func NewMapFromExistingMapByFd(fd int) (*EbpfMap, error) {
 		return nil, err
 	}
 
-	return &EbpfMap{
+	m := &EbpfMap{
 		fd:         fd,
 		Name:       NullTerminatedStringToString(rawInfo.Name[:]),
 		Type:       MapType(rawInfo.Type),
@@ -372,7 +372,13 @@ func NewMapFromExistingMapByFd(fd int) (*EbpfMap, error) {
 		ValueSize:  int(rawInfo.ValueSize),
 		MaxEntries: int(rawInfo.MaxEntries),
 		Flags:      int(rawInfo.Flags),
-	}, nil
+	}
+
+	if err := m.setValueRealSize(); err != nil {
+		return nil, err
+	}
+
+	return m, nil
 }
 
 // NewMapFromExistingMapById creates eBPF map from BPF object ID.
@@ -392,12 +398,53 @@ func NewMapFromExistingMapById(id int) (*EbpfMap, error) {
 	return NewMapFromExistingMapByFd(int(fd))
 }
 
+// NewMapFromExistingMapMapByPath creates eBPF map from a pinned BPF object path.
+// Pinned BPF object is a kernel mechanism to let non owner process to use BPF objects.
+// Common use case - tooling for troubleshoot / inspect existing BPF objects in the kernel.
+func NewMapFromExistingMapByPath(path string) (*EbpfMap, error) {
+	var logBuf [errCodeBufferSize]byte
+
+	pathStr := C.CString(path)
+	defer C.free(unsafe.Pointer(pathStr))
+	fd := C.ebpf_obj_get(pathStr,
+		unsafe.Pointer(&logBuf[0]), C.size_t(unsafe.Sizeof(logBuf)),
+	)
+	if fd == -1 {
+		return nil, fmt.Errorf("ebpf_obj_get() failed: %v",
+			NullTerminatedStringToString(logBuf[:]))
+	}
+
+	m, err := NewMapFromExistingMapByFd(int(fd))
+	if err != nil {
+		return m, err
+	}
+
+	m.PersistentPath = path
+	return m, err
+}
+
 // If map type is Per-CPU based
 func (m *EbpfMap) isPerCpu() bool {
 	return m.Type == MapTypePerCPUArray ||
 		m.Type == MapTypePerCPUHash ||
 		m.Type == MapTypeLRUPerCPUHash ||
 		m.Type == MapTypePerCpuCGroupStorage
+}
+
+// Per-CPU maps require extra space to store values from ALL possible CPUs.
+// For access from userspace, each single value is padded so that it's a multiple of 8 bytes.
+// See: https://github.com/torvalds/linux/commit/15a07b33814d14ca817887dbea8530728dc0fbe4
+func (m *EbpfMap) setValueRealSize() error {
+	if m.isPerCpu() {
+		numCpus, err := GetNumOfPossibleCpus()
+		if err != nil {
+			return err
+		}
+		m.valueRealSize = ((m.ValueSize + 7) / 8) * 8 * numCpus
+	} else {
+		m.valueRealSize = m.ValueSize
+	}
+	return nil
 }
 
 // Map elements part: lookup, update / delete / etc
@@ -443,15 +490,8 @@ func (m *EbpfMap) Create() error {
 		return fmt.Errorf("Invalid map '%s' value size(%d)", m.Name, m.ValueSize)
 	}
 
-	// Per-CPU maps require extra space to store values from ALL possible CPUs
-	if m.isPerCpu() {
-		numCpus, err := GetNumOfPossibleCpus()
-		if err != nil {
-			return err
-		}
-		m.valueRealSize = m.ValueSize * numCpus
-	} else {
-		m.valueRealSize = m.ValueSize
+	if err := m.setValueRealSize(); err != nil {
+		return err
 	}
 
 	// Don't re-create map if it has fd assigned (NewMapFromExisting use case)
@@ -547,7 +587,7 @@ func (m *EbpfMap) CloneTemplate() Map {
 
 // Lookup performs lookup and returns array of bytes
 // WARNING: For Per-CPU array/hash map return value will contain
-// data from all CPUs, i.e. length = valueSize * nCPU
+// data from all CPUs, i.e. length = roundUp(valueSize, 8) * nCPU
 func (m *EbpfMap) Lookup(ikey interface{}) ([]byte, error) {
 	// Convert key into bytes
 	key, err := KeyValueToBytes(ikey, int(m.KeySize))
@@ -640,7 +680,7 @@ func (m *EbpfMap) updateImpl(ikey interface{}, ivalue interface{}, op int) error
 		return err
 	}
 
-	val, err := KeyValueToBytes(ivalue, int(m.ValueSize))
+	val, err := KeyValueToBytes(ivalue, int(m.valueRealSize))
 	if err != nil {
 		return err
 	}
