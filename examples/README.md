@@ -6,6 +6,7 @@ Please note that `eBPF` is supported only by Linux, it will not work on `MacOS`!
 - *SocketFilter*: [Simple Packet Counter](https://github.com/dropbox/goebpf/tree/master/examples/socket_filter/packet_counter)
 - *XDP*: [Simple packets protocol counter](https://github.com/dropbox/goebpf/tree/master/examples/xdp/packet_counter)
 - *XDP*: [Basic Firewall](https://github.com/dropbox/goebpf/tree/master/examples/xdp/basic_firewall)
+- *XDP*: [FIB lookup and bpf_redirect example](https://github.com/dropbox/goebpf/tree/master/examples/xdp/bpf_redirect_map)
 - *PerfEvents*: [XDP Dump](https://github.com/dropbox/goebpf/tree/master/examples/xdp/xdp_dump)
 - *Kprobes*: [Exec Dump](https://github.com/dropbox/goebpf/tree/master/examples/kprobe/exec_dump)
 
