@@ -53,7 +53,7 @@ func main() {
 	if xdpIntf == "" {
 		panic("Please enter a valid interface name.")
 	}
-	intfList := strings.Split(strings.ReplaceAll(xdpIntf, " ", ""), ",")
+	intfList := strings.Split(strings.Replace(xdpIntf, " ", "", 0), ",")
 
 	bpf := goebpf.NewDefaultEbpfSystem()
 	if err := bpf.LoadElf(xdpProgFile); err != nil {
