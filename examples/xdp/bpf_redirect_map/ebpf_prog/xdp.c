@@ -45,6 +45,13 @@ BPF_MAP_DEF(if_redirect) = {
 };
 BPF_MAP_ADD(if_redirect);
 
+/* This program matches ICMP packets (IPPROTO = 0X01) and redirects it back to the sender.
+   Using bpf_fib_lookup, we use the kernel routing table to perform a FIB lookup and send
+   packet back to whoever sent that to us (rewriting ip and mac addresses fields). 
+   This means that the XDP code can essentially route packets, provided that the kernel has
+   the forwarding information. 
+   For more info on Linux and routing lookup: https://vincent.bernat.ch/en/blog/2017-ipv4-route-lookup-linux
+*/
 SEC("xdp")
 int xdp_test(struct xdp_md *ctx)
 {
@@ -88,21 +95,27 @@ int xdp_test(struct xdp_md *ctx)
 
     bpf_printk("doing route lookup dst: %d\n", fib_params.ipv4_dst);
     int rc = bpf_fib_lookup(ctx, &fib_params, sizeof(fib_params), 0);
-    bpf_printk("lookup result: %d - we want it to be %d\n", rc, BPF_FIB_LKUP_RET_SUCCESS);
     if ((rc != BPF_FIB_LKUP_RET_SUCCESS) && (rc != BPF_FIB_LKUP_RET_NO_NEIGH)) {
         bpf_printk("Dropping packet\n");
         return XDP_DROP;
     } else if (rc == BPF_FIB_LKUP_RET_NO_NEIGH) {
         // here we should let packet pass so we resolve arp.
-        bpf_printk("Passing packet, returned %d\n", BPF_FIB_LKUP_RET_NO_NEIGH);
+        bpf_printk("Passing packet, lookup returned %d\n", BPF_FIB_LKUP_RET_NO_NEIGH);
         return XDP_PASS;
     }
     bpf_printk("route lookup success, ifindex: %d\n", fib_params.ifindex);
     bpf_printk("mac to use as dst is: %lu\n", fib_params.dmac);
 
+    // Swap src with dst ip
+    __u32 oldipdst = ip_header->daddr;
+    ip_header->daddr = ip_header->saddr;
+    ip_header->saddr = oldipdst;
+
     // copy resulting dmac/smac from the fib lookup
     memcpy(eth_header->h_dest, fib_params.dmac, ETH_ALEN);
     memcpy(eth_header->h_source, fib_params.smac, ETH_ALEN);
+
+    // redirect packet to the resulting ifindex
     return bpf_redirect_map(&if_redirect, fib_params.ifindex, 0);
 
 }

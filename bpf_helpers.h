@@ -165,14 +165,14 @@ struct pt_regs {
 // XDP metadata - basically data packet
 // P.S. for some reason XDP programs uses 32bit pointers
 struct xdp_md {
-	__u32 data;
-	__u32 data_end;
-	__u32 data_meta;
-	/* Below access go through struct xdp_rxq_info */
-	__u32 ingress_ifindex; /* rxq->dev->ifindex */
-	__u32 rx_queue_index;  /* rxq->queue_index  */
+  __u32 data;
+  __u32 data_end;
+  __u32 data_meta;
+  /* Below access go through struct xdp_rxq_info */
+  __u32 ingress_ifindex; /* rxq->dev->ifindex */
+  __u32 rx_queue_index;  /* rxq->queue_index  */
 
-	__u32 egress_ifindex;  /* txq->dev->ifindex */
+  __u32 egress_ifindex;  /* txq->dev->ifindex */
 };
 
 
@@ -754,73 +754,74 @@ static int (*bpf_xdp_adjust_head)(const void *ctx, int delta) = (void *) // NOLI
 #define BPF_MAP_DEF(name) struct bpf_map_def SEC("maps") name
 #define BPF_MAP_ADD(x)
 
+/* https://elixir.bootlin.com/linux/latest/source/include/uapi/linux/bpf.h#L4283 */
 /* DIRECT:  Skip the FIB rules and go to FIB table associated with device
  * OUTPUT:  Do lookup from egress perspective; default is ingress
  */
 enum {
-	BPF_FIB_LOOKUP_DIRECT  = (1U << 0),
-	BPF_FIB_LOOKUP_OUTPUT  = (1U << 1),
+  BPF_FIB_LOOKUP_DIRECT  = (1U << 0),
+  BPF_FIB_LOOKUP_OUTPUT  = (1U << 1),
 };
 
 enum {
-	BPF_FIB_LKUP_RET_SUCCESS,      /* lookup successful */
-	BPF_FIB_LKUP_RET_BLACKHOLE,    /* dest is blackholed; can be dropped */
-	BPF_FIB_LKUP_RET_UNREACHABLE,  /* dest is unreachable; can be dropped */
-	BPF_FIB_LKUP_RET_PROHIBIT,     /* dest not allowed; can be dropped */
-	BPF_FIB_LKUP_RET_NOT_FWDED,    /* packet is not forwarded */
-	BPF_FIB_LKUP_RET_FWD_DISABLED, /* fwding is not enabled on ingress */
-	BPF_FIB_LKUP_RET_UNSUPP_LWT,   /* fwd requires encapsulation */
-	BPF_FIB_LKUP_RET_NO_NEIGH,     /* no neighbor entry for nh */
-	BPF_FIB_LKUP_RET_FRAG_NEEDED,  /* fragmentation required to fwd */
+  BPF_FIB_LKUP_RET_SUCCESS,      /* lookup successful */
+  BPF_FIB_LKUP_RET_BLACKHOLE,    /* dest is blackholed; can be dropped */
+  BPF_FIB_LKUP_RET_UNREACHABLE,  /* dest is unreachable; can be dropped */
+  BPF_FIB_LKUP_RET_PROHIBIT,     /* dest not allowed; can be dropped */
+  BPF_FIB_LKUP_RET_NOT_FWDED,    /* packet is not forwarded */
+  BPF_FIB_LKUP_RET_FWD_DISABLED, /* fwding is not enabled on ingress */
+  BPF_FIB_LKUP_RET_UNSUPP_LWT,   /* fwd requires encapsulation */
+  BPF_FIB_LKUP_RET_NO_NEIGH,     /* no neighbor entry for nh */
+  BPF_FIB_LKUP_RET_FRAG_NEEDED,  /* fragmentation required to fwd */
 };
 
 struct bpf_fib_lookup {
-	/* input:  network family for lookup (AF_INET, AF_INET6)
-	 * output: network family of egress nexthop
-	 */
-	__u8	family;
+  /* input:  network family for lookup (AF_INET, AF_INET6)
+  * output: network family of egress nexthop
+  */
+  __u8	family;
 
-	/* set if lookup is to consider L4 data - e.g., FIB rules */
-	__u8	l4_protocol;
-	__be16	sport;
-	__be16	dport;
+  /* set if lookup is to consider L4 data - e.g., FIB rules */
+  __u8	l4_protocol;
+  __be16	sport;
+  __be16	dport;
 
-	/* total length of packet from network header - used for MTU check */
-	__u16	tot_len;
+  /* total length of packet from network header - used for MTU check */
+  __u16	tot_len;
 
-	/* input: L3 device index for lookup
-	 * output: device index from FIB lookup
-	 */
-	__u32	ifindex;
+  /* input: L3 device index for lookup
+  * output: device index from FIB lookup
+  */
+  __u32	ifindex;
 
-	union {
-		/* inputs to lookup */
-		__u8	tos;		/* AF_INET  */
-		__be32	flowinfo;	/* AF_INET6, flow_label + priority */
+  union {
+    /* inputs to lookup */
+    __u8	tos;		/* AF_INET  */
+    __be32	flowinfo;	/* AF_INET6, flow_label + priority */
 
-		/* output: metric of fib result (IPv4/IPv6 only) */
-		__u32	rt_metric;
-	};
+    /* output: metric of fib result (IPv4/IPv6 only) */
+    __u32	rt_metric;
+};
 
-	union {
-		__be32		ipv4_src;
-		__u32		ipv6_src[4];  /* in6_addr; network order */
-	};
+  union {
+    __be32		ipv4_src;
+    __u32		ipv6_src[4];  /* in6_addr; network order */
+};
 
-	/* input to bpf_fib_lookup, ipv{4,6}_dst is destination address in
-	 * network header. output: bpf_fib_lookup sets to gateway address
-	 * if FIB lookup returns gateway route
-	 */
-	union {
-		__be32		ipv4_dst;
-		__u32		ipv6_dst[4];  /* in6_addr; network order */
-	};
+  /* input to bpf_fib_lookup, ipv{4,6}_dst is destination address in
+  * network header. output: bpf_fib_lookup sets to gateway address
+  * if FIB lookup returns gateway route
+  */
+  union {
+    __be32		ipv4_dst;
+    __u32		ipv6_dst[4];  /* in6_addr; network order */
+};
 
-	/* output */
-	__be16	h_vlan_proto;
-	__be16	h_vlan_TCI;
-	__u8	smac[6];     /* ETH_ALEN */
-	__u8	dmac[6];     /* ETH_ALEN */
+  /* output */
+  __be16	h_vlan_proto;
+  __be16	h_vlan_TCI;
+  __u8	smac[6];     /* ETH_ALEN */
+  __u8	dmac[6];     /* ETH_ALEN */
 };
 ///// end of __BPF__ /////
 
@@ -846,14 +847,14 @@ struct bpf_fib_lookup {
 // XDP metadata - defined twice because of real eBPF uses 32 bit pointers
 // which are not acceptable for cross platform compilation.
 struct xdp_md {
-	void *data;
-	void *data_end;
-	void *data_meta;
-	/* Below access go through struct xdp_rxq_info */
-	__u32 ingress_ifindex; /* rxq->dev->ifindex */
-	__u32 rx_queue_index;  /* rxq->queue_index  */
+  void *data;
+  void *data_end;
+  void *data_meta;
+  /* Below access go through struct xdp_rxq_info */
+  __u32 ingress_ifindex; /* rxq->dev->ifindex */
+  __u32 rx_queue_index;  /* rxq->queue_index  */
 
-	__u32 egress_ifindex;  /* txq->dev->ifindex */
+  __u32 egress_ifindex;  /* txq->dev->ifindex */
 };
 
 // Mock BPF map support:
