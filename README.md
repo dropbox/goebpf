@@ -121,6 +121,7 @@ And the `go` part:
 Simple? Check [exec dump example](https://github.com/dropbox/goebpf/tree/master/examples/kprobe/exec_dump)
 
 ## Good readings
+- [XDP Tutorials](https://github.com/xdp-project/xdp-tutorial)
 - [Cilium BPF and XDP Reference Guide](https://docs.cilium.io/en/latest/bpf/)
 - [Prototype Kernel: XDP](https://prototype-kernel.readthedocs.io/en/latest/networking/XDP/index.html)
 - [AF_XDP: Accelerating networking](https://lwn.net/Articles/750845/)
