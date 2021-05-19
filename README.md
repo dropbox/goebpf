@@ -14,6 +14,7 @@ A nice and convenient way to work with `eBPF` programs / perf events from Go.
     - `SocketFilter`
     - `XDP`
     - `Kprobe` / `Kretprobe`
+    - `tc-cls` / `tc-act`
 - Perf Events
 
 Support for other program types / features can be added in future.
