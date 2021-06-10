@@ -81,6 +81,30 @@ struct bpf_map_def {
 #define BPF_MAP_OFFSET_PERSISTENT offsetof(struct bpf_map_def, persistent_path)
 #define BPF_MAP_OFFSET_INNER_MAP offsetof(struct bpf_map_def, inner_map_def)
 
+/* Generic BPF return codes which all BPF program types may support.
+ * The values are binary compatible with their TC_ACT_* counter-part to
+ * provide backwards compatibility with existing SCHED_CLS and SCHED_ACT
+ * programs.
+ *
+ * XDP is handled seprately, see XDP_*.
+ */
+enum bpf_ret_code {
+  BPF_OK = 0,
+  /* 1 reserved */
+  BPF_DROP = 2,
+  /* 3-6 reserved */
+  BPF_REDIRECT = 7,
+  /* >127 are reserved for prog type specific return codes.
+  *
+  * BPF_LWT_REROUTE: used by BPF_PROG_TYPE_LWT_IN and
+  *    BPF_PROG_TYPE_LWT_XMIT to indicate that skb had been
+  *    changed and should be routed based on its new L3 header.
+  *    (This is an L3 redirect, as opposed to L2 redirect
+  *    represented by BPF_REDIRECT above).
+  */
+  BPF_LWT_REROUTE = 128,
+};
+
 // XDP related constants
 enum xdp_action {
   XDP_ABORTED = 0,
@@ -457,6 +481,9 @@ static int (*bpf_perf_event_output)(void *ctx, void *map, __u64 index, void *dat
 
 static int (*bpf_skb_load_bytes)(void *ctx, int offset, void *to, __u32 len) = (void*) // NOLINT
      BPF_FUNC_skb_load_bytes;
+
+static int (*bpf_skb_store_bytes)(void *ctx, int offset, const void *from, __u32 len, __u64 flags) = (void *) // NOLINT
+     BPF_FUNC_skb_store_bytes;
 
 static int (*bpf_perf_event_read_value)(void *map, __u64 flags, void *buf, __u32 buf_size) = (void*) // NOLINT
      BPF_FUNC_perf_event_read_value;

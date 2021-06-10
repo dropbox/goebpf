@@ -38,6 +38,8 @@ var sectionNameToProgramType = map[string]programCreator{
 	"socket_filter": newSocketFilterProgram,
 	"kprobe":        newKprobeProgram,
 	"kretprobe":     newKretprobeProgram,
+	"tc_cls":        newTcSchedClsProgram,
+	"tc_act":        newTcSchedActProgram,
 }
 
 // BPF instruction //
