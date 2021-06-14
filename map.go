@@ -86,18 +86,6 @@ static int ebpf_map_delete_elem(__u32 fd, const void *key,
 	return res;
 }
 
-static int ebpf_obj_get(const char *pathname,
-		void *log_buf, size_t log_size)
-{
-	union bpf_attr attr = {};
-
-	attr.pathname = ptr_to_u64(pathname);
-
-	int res = SYSCALL_BPF(BPF_OBJ_GET);
-	strncpy(log_buf, strerror(errno), log_size);
-	return res;
-}
-
 static int ebpf_map_get_fd_by_id(__u32 id,
 		void *log_buf, size_t log_size)
 {
@@ -402,19 +390,11 @@ func NewMapFromExistingMapById(id int) (*EbpfMap, error) {
 // Pinned BPF object is a kernel mechanism to let non owner process to use BPF objects.
 // Common use case - tooling for troubleshoot / inspect existing BPF objects in the kernel.
 func NewMapFromExistingMapByPath(path string) (*EbpfMap, error) {
-	var logBuf [errCodeBufferSize]byte
-
-	pathStr := C.CString(path)
-	defer C.free(unsafe.Pointer(pathStr))
-	fd := C.ebpf_obj_get(pathStr,
-		unsafe.Pointer(&logBuf[0]), C.size_t(unsafe.Sizeof(logBuf)),
-	)
-	if fd == -1 {
-		return nil, fmt.Errorf("ebpf_obj_get() failed: %v",
-			NullTerminatedStringToString(logBuf[:]))
+	fd, err := ebpfObjGet(path)
+	if err != nil {
+		return nil, err
 	}
-
-	m, err := NewMapFromExistingMapByFd(int(fd))
+	m, err := NewMapFromExistingMapByFd(fd)
 	if err != nil {
 		return m, err
 	}
@@ -505,16 +485,10 @@ func (m *EbpfMap) Create() error {
 	// Map can be defined as either process only or system wide ("object pinning")
 	// If PersistentPath is set - it indicates that eBPF program wants to
 	// make this map system wide accessible via PersistentPath (it is just filename)
-	persistentPathStr := C.CString(m.PersistentPath)
-	defer C.free(unsafe.Pointer(persistentPathStr))
 	if m.PersistentPath != "" {
 		// Try to locate map in the system on
 		// given path (i.e. map has been already created before)
-		objFd := int(C.ebpf_obj_get(
-			persistentPathStr,
-			unsafe.Pointer(&logBuf[0]),
-			C.size_t(unsafe.Sizeof(logBuf)),
-		))
+		objFd, _ := ebpfObjGet(m.PersistentPath)
 		if objFd != -1 {
 			// Successful, retrieved map fd from given location
 			m.fd = objFd
