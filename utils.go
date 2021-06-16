@@ -35,6 +35,18 @@ static int ebpf_obj_pin(__u32 fd, const char *pathname,
 	return res;
 }
 
+static int ebpf_obj_get(const char *pathname,
+		void *log_buf, size_t log_size)
+{
+	union bpf_attr attr = {};
+
+	attr.pathname = ptr_to_u64(pathname);
+
+	int res = SYSCALL_BPF(BPF_OBJ_GET);
+	strncpy(log_buf, strerror(errno), log_size);
+	return res;
+}
+
 static int ebpf_prog_get_fd_by_id(__u32 id,
 		void *log_buf, size_t log_size)
 {
@@ -251,6 +263,37 @@ func GetProgramInfoById(id int) (*ProgramInfo, error) {
 	}
 
 	return GetProgramInfoByFd(int(fd))
+}
+
+// GetProgramInfoByPath queries information about already loaded eBPF
+// program by using its pinned path in the filesystem.
+func GetProgramInfoByPath(path string) (*ProgramInfo, error) {
+	fd, err := ebpfObjGet(path)
+	if err != nil {
+		return nil, err
+	}
+	p, err := GetProgramInfoByFd(fd)
+	if err != nil {
+		return p, err
+	}
+
+	return p, err
+}
+
+// Wrapper for ebpf_obj_get() syscall
+func ebpfObjGet(path string) (int, error) {
+	var logBuf [errCodeBufferSize]byte
+
+	pathStr := C.CString(path)
+	defer C.free(unsafe.Pointer(pathStr))
+	fd := C.ebpf_obj_get(pathStr,
+		unsafe.Pointer(&logBuf[0]), C.size_t(unsafe.Sizeof(logBuf)),
+	)
+	if fd == -1 {
+		return int(fd), fmt.Errorf("ebpf_obj_get() failed: %v",
+			NullTerminatedStringToString(logBuf[:]))
+	}
+	return int(fd), nil
 }
 
 // Wrapper for ebpf_obj_pin() syscall
