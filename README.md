@@ -45,12 +45,12 @@ Consider very simple example of Read / Load / Attach
     // Work with maps
     test := bpf.GetMapByName("test")
     value, _ := test.LookupInt(0)
-    fmt.Printf("Value at index 0 of map 'test': %d\n", )
+    fmt.Printf("Value at index 0 of map 'test': %d\n", value)
 ```
 Like it? Check our [examples](https://github.com/dropbox/goebpf/tree/master/examples/)
 
 ## Perf Events
-Library currently has support for one, most popular use case of `perf_events` - where `eBPF` map key maps to `cpu_id`.
+Currently library has support for one, most popular use case of `perf_events: where `eBPF` map key maps to `cpu_id`.
 So `eBPF` and `go` parts actually bind `cpu_id` to map index. It maybe as simple as:
 
 ```c
@@ -81,7 +81,7 @@ And the `go` part:
         }
     }
 ```
-Simple? Check [full XDP dump example](https://github.com/dropbox/goebpf/tree/master/examples/xdp/xdp_dump)
+Looks simple? Check our [full XDP dump example](https://github.com/dropbox/goebpf/tree/master/examples/xdp/xdp_dump)
 
 ## Kprobes
 Library currently has support for `kprobes` and `kretprobes`.
