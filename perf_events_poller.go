@@ -96,6 +96,7 @@ func (p *perfEventPoller) Stop() {
 	// Stop loop
 	close(p.stopChannel)
 	p.wg.Wait()
+	close(p.updateChannel)
 }
 
 func (p *perfEventPoller) loop() {
@@ -119,7 +120,12 @@ func (p *perfEventPoller) loop() {
 
 		// Send perfEventHandlers with pending updates, if any
 		for i := 0; i < readyCnt; i++ {
-			p.updateChannel <- p.items[int(p.fds[i])]
+			select {
+			case p.updateChannel <- p.items[int(p.fds[i])]:
+
+			case <-p.stopChannel:
+				return
+			}
 		}
 	}
 }
