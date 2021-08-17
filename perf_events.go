@@ -40,6 +40,7 @@ type PerfEvents struct {
 	// PollTimeoutMs is timeout for blocking call of poll()
 	// Defaults to 100ms
 	PollTimeoutMs int
+	poller        *perfEventPoller
 
 	perfMap        Map
 	updatesChannel chan []byte
@@ -132,6 +133,8 @@ func (pe *PerfEvents) StartForAllProcessesAndCPUs(bufferSize int) (<-chan []byte
 
 // Stop stops event polling loop
 func (pe *PerfEvents) Stop() {
+	// Stop poller firstly
+	pe.poller.Stop()
 	// Stop poll loop
 	close(pe.stopChannel)
 	// Wait until poll loop stopped, then close updates channel
@@ -154,22 +157,25 @@ func (pe *PerfEvents) startLoop() {
 
 func (pe *PerfEvents) loop() {
 	// Setup poller to poll all handlers (one handler per CPU)
-	poller := newPerfEventPoller()
+	pe.poller = newPerfEventPoller()
 	for _, handler := range pe.handlers {
-		poller.Add(handler)
+		pe.poller.Add(handler)
 	}
 
 	// Start poller
-	pollerCh := poller.Start(pe.PollTimeoutMs)
+	pollerCh := pe.poller.Start(pe.PollTimeoutMs)
 	defer func() {
-		poller.Stop()
 		pe.wg.Done()
 	}()
 
 	// Wait until at least one perf event fd becomes readable (has new data)
 	for {
 		select {
-		case handler := <-pollerCh:
+		case handler, ok := <-pollerCh:
+			if !ok {
+				return
+			}
+
 			pe.handlePerfEvent(handler)
 
 		case <-pe.stopChannel:
