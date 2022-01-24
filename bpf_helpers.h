@@ -49,6 +49,49 @@ enum bpf_map_type {
   BPF_MAP_TYPE_SK_STORAGE,
 };
 
+/* BPF_FUNC_skb_store_bytes flags. */
+enum {
+  BPF_F_RECOMPUTE_CSUM             = (1ULL << 0),
+  BPF_F_INVALIDATE_HASH            = (1ULL << 1),
+};
+
+/* BPF_FUNC_l3_csum_replace and BPF_FUNC_l4_csum_replace flags.
+ * First 4 bits are for passing the header field size.
+ */
+enum {
+  BPF_F_HDR_FIELD_MASK             = 0xfULL,
+};
+
+/* BPF_FUNC_l4_csum_replace flags. */
+enum {
+  BPF_F_PSEUDO_HDR                 = (1ULL << 4),
+  BPF_F_MARK_MANGLED_0             = (1ULL << 5),
+  BPF_F_MARK_ENFORCE               = (1ULL << 6),
+};
+
+/* BPF_FUNC_clone_redirect and BPF_FUNC_redirect flags. */
+enum {
+  BPF_F_INGRESS                    = (1ULL << 0),
+};
+
+/* BPF_FUNC_skb_set_tunnel_key flags. */
+enum {
+  BPF_F_ZERO_CSUM_TX               = (1ULL << 1),
+  BPF_F_DONT_FRAGMENT              = (1ULL << 2),
+  BPF_F_SEQ_NUMBER                 = (1ULL << 3),
+};
+
+/* BPF_FUNC_skb_adjust_room flags. */
+enum {
+  BPF_F_ADJ_ROOM_FIXED_GSO         = (1ULL << 0),
+  BPF_F_ADJ_ROOM_ENCAP_L3_IPV4     = (1ULL << 1),
+  BPF_F_ADJ_ROOM_ENCAP_L3_IPV6     = (1ULL << 2),
+  BPF_F_ADJ_ROOM_ENCAP_L4_GRE      = (1ULL << 3),
+  BPF_F_ADJ_ROOM_ENCAP_L4_UDP      = (1ULL << 4),
+  BPF_F_ADJ_ROOM_NO_CSUM_RESET     = (1ULL << 5),
+  BPF_F_ADJ_ROOM_ENCAP_L2_ETH      = (1ULL << 6),
+};
+
 /* flags for BPF_MAP_UPDATE_ELEM command */
 #define BPF_ANY 0     /* create new element or update existing */
 #define BPF_NOEXIST 1 /* create new element if it didn't exist */
@@ -479,6 +522,12 @@ static __u32 (*bpf_get_route_realm)(void *ctx) = (void*) // NOLINT
 static int (*bpf_perf_event_output)(void *ctx, void *map, __u64 index, void *data, __u32 size) = (void*) // NOLINT
      BPF_FUNC_perf_event_output;
 
+static int (*bpf_l3_csum_replace)(void *ctx, int offset, __u64 from, __u64 to, __u64 size) = (void *) // NOLINT
+     BPF_FUNC_l3_csum_replace;
+
+static int (*bpf_l4_csum_replace)(void *ctx, int offset, __u64 from, __u64 to, __u64 flags) = (void *) // NOLINT
+     BPF_FUNC_l4_csum_replace;
+
 static int (*bpf_skb_load_bytes)(void *ctx, int offset, void *to, __u32 len) = (void*) // NOLINT
      BPF_FUNC_skb_load_bytes;
 
@@ -850,6 +899,12 @@ struct bpf_fib_lookup {
   __u8	smac[6];     /* ETH_ALEN */
   __u8	dmac[6];     /* ETH_ALEN */
 };
+
+// offsetof gets the offset of a struct member
+#ifndef offsetof
+#define offsetof(TYPE, MEMBER) ((size_t) &((TYPE *)0)->MEMBER)
+#endif
+
 ///// end of __BPF__ /////
 
 #else
