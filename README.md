@@ -6,7 +6,7 @@
 A nice and convenient way to work with `eBPF` programs / perf events from Go.
 
 ## Requirements
-- Go 1.10+
+- Go 1.11+
 - Linux Kernel 4.15+
 
 ## Supported eBPF features
