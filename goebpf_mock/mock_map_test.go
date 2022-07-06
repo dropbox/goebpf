@@ -213,6 +213,7 @@ func TestGetNextKeyString(t *testing.T) {
 		"key1": "val1",
 		"key2": "val2",
 		"key3": "val3",
+		"":     "val4",
 	}
 
 	result := map[string]string{}
@@ -222,16 +223,17 @@ func TestGetNextKeyString(t *testing.T) {
 		err = m.Insert(key, value)
 		assert.NoError(t, err)
 	}
-	var currentKey string
+	currentKey, err := m.GetNextKeyString(nil)
+	assert.NoError(t, err)
 	for {
+		val, err := m.LookupString(currentKey)
+		assert.NoError(t, err)
+		assert.Equal(t, mapData[currentKey], string(val))
+		result[currentKey] = val
 		nextKey, err := m.GetNextKeyString(currentKey)
 		if err != nil {
 			break
 		}
-		val, err := m.LookupString(nextKey)
-		assert.NoError(t, err)
-		assert.Equal(t, mapData[nextKey], string(val))
-		result[nextKey] = val
 		currentKey = nextKey
 	}
 	assert.Equal(t, mapData, result)
@@ -252,6 +254,7 @@ func TestGetNextKeyInt(t *testing.T) {
 		1234: 4321,
 		5678: 8765,
 		9012: 2109,
+		0:    123,
 	}
 
 	result := map[int]int{}
@@ -261,16 +264,17 @@ func TestGetNextKeyInt(t *testing.T) {
 		err = m.Insert(key, value)
 		assert.NoError(t, err)
 	}
-	var currentKey int
+	currentKey, err := m.GetNextKeyInt(nil)
+	assert.NoError(t, err)
 	for {
+		val, err := m.LookupInt(currentKey)
+		assert.NoError(t, err)
+		assert.Equal(t, mapData[currentKey], int(val))
+		result[currentKey] = val
 		nextKey, err := m.GetNextKeyInt(currentKey)
 		if err != nil {
 			break
 		}
-		val, err := m.LookupInt(nextKey)
-		assert.NoError(t, err)
-		assert.Equal(t, mapData[nextKey], int(val))
-		result[nextKey] = val
 		currentKey = nextKey
 	}
 	assert.Equal(t, mapData, result)
