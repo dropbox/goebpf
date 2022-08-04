@@ -68,10 +68,10 @@ func main() {
 		}
 
 		attachParams := &goebpf.TcAttachParams{
-			Interface:    *iface,
-			Direction:    prog.direction,
-			DirectAction: false,
-			EntryPoint:   prog.name,
+			Interface:      *iface,
+			Direction:      prog.direction,
+			DirectAction:   false,
+			EntryPoint:     prog.name,
 			ClobberIngress: true,
 		}
 
