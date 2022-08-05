@@ -20,29 +20,35 @@ type tcProgram struct {
 	handle    uint32
 }
 
-// Attachment parameters dictating where and how the eBPF program is attached.
-// The current behavior is to attach to the "egress" and "ingress" pseudo-qdiscs
-// created by clsact.
+// TcAttachParams is attachment parameters dictating where and how the eBPF
+// program is attached. The current behavior is to attach to the "egress"
+// and "ingress" pseudo-qdiscs created by clsact.
 type TcAttachParams struct {
-	// Name of the network interface to which the program should be atached
-	// i.e. "eth0"
+	// Interface is the name of the network interface to which the program should
+	// be attached, i.e. "eth0".
 	Interface string
 
-	// Flow direction, either TcDirectionIngress or TcDirectionEgress
+	// Direction is either TcDirectionIngress or TcDirectionEgress.
 	Direction TcFlowDirection
 
-	// If true, the eBPF program gets to choose what happens to the packet
-	// through its return value. If false, the packet always continues
-	// through the filter chain, which is preferred for programs that only
-	// log things (i.e. aren't used for altering or classifying traffic).
+	// DirectAction indicates to the linux tc stack whether the eBPF program gets
+	// to choose what happens to the packet through its return value. If false, the
+	// packet always continues through the filter chain, which is preferred for
+	// programs that only log things (i.e. aren't used for altering or classifying
+	// traffic).
 	DirectAction bool
 
-	// Name of the symbol (C function) to load from the eBPF program.
+	// EntryPoint is the name of the symbol (C function) to load from the eBPF
+	// program.
 	EntryPoint string
 
-	// Whether to allow clobbering the ingress qdisc. This could interfere with
-	// an existing tc configuration, so tread with caution if enabling this
-	// option.
+	// ClobberIngress tells this library whether to allow replacement of the
+	// ingress qdisc with clsact. This could interfere with an existing tc
+	// configuration, so the operator is encouraged to tread with caution if
+	// enabling this option.
+	//
+	// If this option is set to false, the clsact qdisc will be installed if
+	// no ingress qdisc is presently installed.
 	ClobberIngress bool
 }
 
@@ -62,12 +68,13 @@ const (
 	// Please note, support for this is currently not implemented
 	TcProgramTypeAct
 
-	// Handle that must be used by the ingress or clsact qdisc.
+	// HANDLE_INGRESS_QDISC is the handle always used by the ingress or clsact
+	// qdisc.
 	HANDLE_INGRESS_QDISC uint32 = 0xFFFF0000
 
-	// Lowest handle value that will be used by a filter installed by this
-	// program. Ideally this should not conflict with filters that might be
-	// installed by another script.
+	// HANDLE_FILTER_BASE is the lowest handle value that will be used by a
+	// filter installed by this library. Ideally this should not conflict with
+	// filters that might be installed by another script.
 	//
 	// It should be possible to install multiple filters, including in the
 	// same direction, and run them concurrently.
@@ -117,8 +124,8 @@ func (t TcFlowDirection) String() string {
 	}
 }
 
-// Convert a TcFlowDirection() to the parent qdisc handle that must be used
-// for a filter.
+// Parent() converts a TcFlowDirection() to the parent qdisc handle that must
+// be used for a filter.
 func (t TcFlowDirection) Parent() uint32 {
 	switch t {
 	case TcDirectionIngress:
@@ -130,8 +137,8 @@ func (t TcFlowDirection) Parent() uint32 {
 	}
 }
 
-// Attach an eBPF program to the clsact ingress or egress filter chain.
-// Takes a pointer to a TcAttachParams struct as an argument.
+// Attach() attaches an eBPF program to the clsact ingress or egress filter
+// chain. It accepts a pointer to a TcAttachParams struct as an argument.
 func (p *tcProgram) Attach(data interface{}) error {
 	args, ok := data.(*TcAttachParams)
 	if !ok {
@@ -208,8 +215,7 @@ func (p *tcProgram) Attach(data interface{}) error {
 	return nil
 }
 
-// Detach the running program from the filter chain or remove it from the actions
-// table.
+// Detach() removes the running program from the filter chain.
 func (p *tcProgram) Detach() error {
 	if p.link == nil {
 		return fmt.Errorf("can't find link object, did Attach() succeed yet?")
