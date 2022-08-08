@@ -134,7 +134,12 @@ func (ts *kprobeTestSuite) TestKprobeEvents() {
 		case data := <-perfCh:
 			switch i {
 			case 0:
-				ts.Require().Equal("itest_test", cstring(data)) // parent comm
+				// Allow both an underscore and dot here.
+				// When `go test` runs this, it's written to a temporary path
+				// like `/tmp/go-build3999159532/b001/itest.test`.
+				// If directly compiled, the executable will be
+				// named `./itest_test`.
+				ts.Require().Regexp("^itest[_\\.]test$", cstring(data)) // parent comm
 			case 1:
 				ts.Require().Equal("whoami", cstring(data)) // child comm
 			}
