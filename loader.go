@@ -242,9 +242,15 @@ func loadAndCreateMaps(elfFile *elf.File) (map[string]Map, error) {
 				if err != nil {
 					return nil, fmt.Errorf("Unable to read '%s' section data: %v", sec.Name, err)
 				}
-				// Section data contains null terminated string and
-				// symbol.Value holds offset in this data
-				mapsByIndex[mapIndex].PersistentPath = NullTerminatedStringToString(sdata[relo.symbol.Value:])
+				// Section data contains null terminated string
+				// pointer to string value may be in either the symbol value or
+				// the pointer value within the struct itself
+				offset := mapsByIndex[mapIndex].persistentPathOffset
+				if offset == 0 && relo.symbol.Value > 0 {
+					offset = relo.symbol.Value
+				}
+				mapsByIndex[mapIndex].PersistentPath = NullTerminatedStringToString(
+					sdata[offset:])
 			} else {
 				return nil, fmt.Errorf("Unknown map RELO offset %d", mapOffset)
 			}
