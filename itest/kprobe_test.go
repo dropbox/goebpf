@@ -134,7 +134,7 @@ func (ts *kprobeTestSuite) TestKprobeEvents() {
 		case data := <-perfCh:
 			switch i {
 			case 0:
-				ts.Require().Equal("itest_test", cstring(data)) // parent comm
+				ts.Require().Regexp("^itest[_\\.]test$", cstring(data)) // parent comm
 			case 1:
 				ts.Require().Equal("whoami", cstring(data)) // child comm
 			}
