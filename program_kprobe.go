@@ -161,11 +161,11 @@ func newKretprobeProgram(bp BaseProgram) Program {
 // Attach attaches eBPF(Kprobe) program to a probe point.
 // There are 2 possible ways to do that:
 //
-// 1. Pass attach point as parameter, e.g.
-//    xdpProgram.Attach("SyS_execve")
+//  1. Pass attach point as parameter, e.g.
+//     xdpProgram.Attach("SyS_execve")
 //
-// 2. Using the ebpf program section identifier.
-//    SEC("kprobe/SyS_execve")
+//  2. Using the ebpf program section identifier.
+//     SEC("kprobe/SyS_execve")
 func (p *kprobeProgram) Attach(data interface{}) error {
 
 	// (optional) symbol override by parameter
@@ -227,7 +227,8 @@ func (p *kprobe) kprobePath(cmd string) string {
 
 // entry returns the relevant debugfs entry formatted string for the kprobe.
 // e.g. r4096:kretprobes/SyS_execve_goebpf_1234 SyS_execve
-//      <type_prefix|maxactive>:<type>/<label> <target_symbol>
+//
+//	<type_prefix|maxactive>:<type>/<label> <target_symbol>
 func (p *kprobe) entry() string {
 	prefix := p.attachType.Prefix()
 	if p.attachType == KprobeAttachTypeReturn {

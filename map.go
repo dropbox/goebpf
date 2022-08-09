@@ -273,6 +273,7 @@ type EbpfMap struct {
 // CreateLPMtrieKey converts string representation of CIDR into net.IPNet
 // in order to support special eBPF map type: LPMtrie ("Longest Prefix Match Trie")
 // Can be used to match single IPv4/6 address with multiple CIDRs, like
+//
 //	m.Insert(CreateLPMtrieKey("192.168.0.0/16"), "value16")
 //	m.Insert(CreateLPMtrieKey("192.168.0.0/24"), "value24")
 //
@@ -694,7 +695,6 @@ func (m *EbpfMap) Update(ikey interface{}, ivalue interface{}) error {
 
 // Upsert updates (replaces) or inserts element at given ikey.
 // Supported ivalue types are: int, uint8, uint16, uint32, int32, uint64, string, []byte, net.IPNet
-//
 func (m *EbpfMap) Upsert(ikey interface{}, ivalue interface{}) error {
 	return m.updateImpl(ikey, ivalue, bpfAny)
 }

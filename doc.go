@@ -4,7 +4,7 @@
 /*
 Package goebpf provides simple and convenient interface to Linux eBPF system.
 
-Overview
+# Overview
 
 Extended Berkeley Packet Filter (eBPF) is a highly flexible and efficient virtual machine
 in the Linux kernel allowing to execute bytecode at various hook points in a safe manner.
@@ -19,7 +19,7 @@ Currently supported functionality:
 - Provides simple interface to interact with eBPF maps
 - Has mock versions of eBPF objects (program, map, etc) in order to make writing unittests simple.
 
-XDP
+# XDP
 
 eXpress Data Path - provides a bare metal, high performance, programmable packet processing
 at the closest at possible point to network driver. That makes it ideal for speed without
@@ -73,7 +73,7 @@ Once compiled can be used by goebpf in the following way:
 	    fmt.Printf("Drops: %d\n", val)
 	}
 
-PerfEvents
+# PerfEvents
 
 Perf Events (originally Performance Counters for Linux) is powerful kernel instrument for
 tracing, profiling and a lot of other cases like general events to user space.
@@ -119,7 +119,7 @@ A simple example could be to log all TCP SYN packets into user space from XDP pr
 		}
 	}
 
-Kprobes
+# Kprobes
 
 There are currently two types of supported probes: kprobes, and kretprobes
 (also called return probes). A kprobe can be inserted on virtually
