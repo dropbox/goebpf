@@ -265,6 +265,8 @@ type EbpfMap struct {
 	// WARNING: filesystem must be mounted as BPF
 	PersistentPath string
 
+	persistentPathOffset uint64
+
 	// In case of Per-CPU maps bpf_lookup call expects buffer equal to valueSize * nCPUs
 	// which will be populated with data from all possible CPUs
 	valueRealSize int
@@ -273,6 +275,7 @@ type EbpfMap struct {
 // CreateLPMtrieKey converts string representation of CIDR into net.IPNet
 // in order to support special eBPF map type: LPMtrie ("Longest Prefix Match Trie")
 // Can be used to match single IPv4/6 address with multiple CIDRs, like
+//
 //	m.Insert(CreateLPMtrieKey("192.168.0.0/16"), "value16")
 //	m.Insert(CreateLPMtrieKey("192.168.0.0/24"), "value24")
 //
@@ -318,6 +321,10 @@ func newMapFromElfSection(data []byte) (*EbpfMap, error) {
 		ValueSize:  int(binary.LittleEndian.Uint32(data[8:])),
 		MaxEntries: int(binary.LittleEndian.Uint32(data[12:])),
 		Flags:      int(binary.LittleEndian.Uint32(data[16:])),
+		// NOTE(fuhry@2022-08-08): the bpf_map_def struct is not packed, so
+		// pointer fields are 8 bytes long and aligned to 8 byte boundaries.
+		// FIXME: handle different pointer sizes?
+		persistentPathOffset: uint64(binary.LittleEndian.Uint64(data[32:])),
 	}, nil
 }
 
@@ -694,7 +701,6 @@ func (m *EbpfMap) Update(ikey interface{}, ivalue interface{}) error {
 
 // Upsert updates (replaces) or inserts element at given ikey.
 // Supported ivalue types are: int, uint8, uint16, uint32, int32, uint64, string, []byte, net.IPNet
-//
 func (m *EbpfMap) Upsert(ikey interface{}, ivalue interface{}) error {
 	return m.updateImpl(ikey, ivalue, bpfAny)
 }

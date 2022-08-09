@@ -44,13 +44,14 @@ var sectionNameToProgramType = map[string]programCreator{
 
 // BPF instruction //
 // Must be in sync with linux/bpf.h:
-// 	struct bpf_insn {
-// 		__u8	code;		/* opcode */
-// 		__u8	dst_reg:4;	/* dest register */
-// 		__u8	src_reg:4;	/* source register */
-// 		__s16	off;		/* signed offset */
-// 		__s32	imm;		/* signed immediate constant */
-// 	};
+//
+//	struct bpf_insn {
+//		__u8	code;		/* opcode */
+//		__u8	dst_reg:4;	/* dest register */
+//		__u8	src_reg:4;	/* source register */
+//		__s16	off;		/* signed offset */
+//		__s32	imm;		/* signed immediate constant */
+//	};
 type bpfInstruction struct {
 	code   uint8  // Opcode
 	dstReg uint8  // 4 bits: destination register, r0-r10
@@ -242,9 +243,15 @@ func loadAndCreateMaps(elfFile *elf.File) (map[string]Map, error) {
 				if err != nil {
 					return nil, fmt.Errorf("Unable to read '%s' section data: %v", sec.Name, err)
 				}
-				// Section data contains null terminated string and
-				// symbol.Value holds offset in this data
-				mapsByIndex[mapIndex].PersistentPath = NullTerminatedStringToString(sdata[relo.symbol.Value:])
+				// Section data contains null terminated string
+				// pointer to string value may be in either the symbol value or
+				// the pointer value within the struct itself
+				offset := mapsByIndex[mapIndex].persistentPathOffset
+				if offset == 0 && relo.symbol.Value > 0 {
+					offset = relo.symbol.Value
+				}
+				mapsByIndex[mapIndex].PersistentPath = NullTerminatedStringToString(
+					sdata[offset:])
 			} else {
 				return nil, fmt.Errorf("Unknown map RELO offset %d", mapOffset)
 			}
