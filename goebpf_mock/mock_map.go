@@ -23,7 +23,7 @@ struct bpf_map_item {
 SLIST_HEAD(bpf_map_data_head, bpf_map_item);
 
 // Define previously declared list head
-struct __create_map_def maps_head;
+__attribute__((weak)) struct __create_map_def maps_head;
 struct __maps_head_def *__maps_head = (struct __maps_head_def*) &maps_head;
 
 static int is_map_type_array(struct bpf_map_def *def)

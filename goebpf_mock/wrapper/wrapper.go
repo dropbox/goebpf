@@ -11,7 +11,7 @@ package wrapper
 
 // Since eBPF mock package is optional and have definition of "__maps_head" symbol
 // it may cause link error, so defining weak symbol here as well
-struct __create_map_def maps_head;
+__attribute__((weak)) struct __create_map_def maps_head;
 __attribute__((weak)) struct __maps_head_def *__maps_head = (struct __maps_head_def*) &maps_head;
 
 BPF_MAP_DEF(map_hash) = {
