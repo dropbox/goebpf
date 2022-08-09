@@ -265,6 +265,8 @@ type EbpfMap struct {
 	// WARNING: filesystem must be mounted as BPF
 	PersistentPath string
 
+	persistentPathOffset uint64
+
 	// In case of Per-CPU maps bpf_lookup call expects buffer equal to valueSize * nCPUs
 	// which will be populated with data from all possible CPUs
 	valueRealSize int
@@ -319,6 +321,10 @@ func newMapFromElfSection(data []byte) (*EbpfMap, error) {
 		ValueSize:  int(binary.LittleEndian.Uint32(data[8:])),
 		MaxEntries: int(binary.LittleEndian.Uint32(data[12:])),
 		Flags:      int(binary.LittleEndian.Uint32(data[16:])),
+		// NOTE(fuhry@2022-08-08): the bpf_map_def struct is not packed, so
+		// pointer fields are 8 bytes long and aligned to 8 byte boundaries.
+		// FIXME: handle different pointer sizes?
+		persistentPathOffset: uint64(binary.LittleEndian.Uint64(data[32:])),
 	}, nil
 }
 
