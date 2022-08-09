@@ -1,23 +1,21 @@
-dist: xenial
+dist: jammy
 language: go
 sudo: true
 
 go:
-  - "tip"
-  - "1.15.x"
-  - "1.12.x"
-  - "1.11.x"
+  - "1.x"
+  - "1.18.x"
+  - "1.16.x"
 
 before_install:
   - sudo apt-get update
   - sudo apt-get install -y clang llvm
-  - export GO111MODULE=on
 
 script:
   # ad-hoc for golang versions < 1.11
   # testify now uses go 1.13 features like errors.Is(), so switching to last supported version
   - rm -rf $GOPATH/src/github.com/stretchr/testify
-  - git clone -b v1.6.1 https://github.com/stretchr/testify.git $GOPATH/src/github.com/stretchr/testify
+  - git clone -b v1.8.0 https://github.com/stretchr/testify.git $GOPATH/src/github.com/stretchr/testify
   # Verify for formatting issues
   - if [ -n "$(gofmt -s -l .)" ]; then echo "Please fix source formatting by 'go fmt ./...'"; false; fi
   # Run unit tests
