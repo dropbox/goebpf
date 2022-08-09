@@ -44,13 +44,14 @@ var sectionNameToProgramType = map[string]programCreator{
 
 // BPF instruction //
 // Must be in sync with linux/bpf.h:
-// 	struct bpf_insn {
-// 		__u8	code;		/* opcode */
-// 		__u8	dst_reg:4;	/* dest register */
-// 		__u8	src_reg:4;	/* source register */
-// 		__s16	off;		/* signed offset */
-// 		__s32	imm;		/* signed immediate constant */
-// 	};
+//
+//	struct bpf_insn {
+//		__u8	code;		/* opcode */
+//		__u8	dst_reg:4;	/* dest register */
+//		__u8	src_reg:4;	/* source register */
+//		__s16	off;		/* signed offset */
+//		__s32	imm;		/* signed immediate constant */
+//	};
 type bpfInstruction struct {
 	code   uint8  // Opcode
 	dstReg uint8  // 4 bits: destination register, r0-r10

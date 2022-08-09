@@ -52,20 +52,22 @@ type PerfEvents struct {
 
 // Go definition for C structs from
 // http://man7.org/linux/man-pages/man2/perf_event_open.2.html
-// struct perf_event_header {
-//     __u32   type;
-//     __u16   misc;
-//     __u16   size;
-// }
+//
+//	struct perf_event_header {
+//	    __u32   type;
+//	    __u16   misc;
+//	    __u16   size;
+//	}
 type perfEventHeader struct {
 	Type uint32
 	Misc uint16
 	Size uint16
 }
 
-// struct perf_event_lost {
-//     uint64_t id;
-//     uint64_t lost;
+//	struct perf_event_lost {
+//	    uint64_t id;
+//	    uint64_t lost;
+//
 // not added: struct sample_id sample_id;
 // }
 type perfEventLost struct {

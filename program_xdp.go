@@ -87,13 +87,13 @@ func newXdpProgram(bp BaseProgram) Program {
 // Attach attaches eBPF(XDP) program to network interface.
 // There are 2 possible ways to do that:
 //
-// 1. Pass interface name as parameter, e.g.
-//    xdpProgram.Attach("eth0")
+//  1. Pass interface name as parameter, e.g.
+//     xdpProgram.Attach("eth0")
 //
-// 2. Using XdpAttachParams structure:
-//    xdpProgram.Attach(
-//			&XdpAttachParams{Mode: XdpAttachModeSkb, Interface: "eth0"
-//    })
+//  2. Using XdpAttachParams structure:
+//     xdpProgram.Attach(
+//     &XdpAttachParams{Mode: XdpAttachModeSkb, Interface: "eth0"
+//     })
 func (p *xdpProgram) Attach(data interface{}) error {
 	var ifaceName string
 	var attachMode = XdpAttachModeNone // AutoSelect
