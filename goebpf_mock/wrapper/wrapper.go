@@ -6,8 +6,9 @@
 // using import "C" from tests... :-(
 package wrapper
 
+// #cgo CFLAGS: -I../..
 /*
-#include "../../bpf_helpers.h"
+#include "bpf_helpers.h"
 
 // Since eBPF mock package is optional and have definition of "__maps_head" symbol
 // it may cause link error, so defining weak symbol here as well
