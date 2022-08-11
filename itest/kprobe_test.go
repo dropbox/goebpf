@@ -153,7 +153,7 @@ func (ts *kprobeTestSuite) TestKprobeEvents() {
 // Run suite
 func TestKprobeSuite(t *testing.T) {
 	suite.Run(t, &kprobeTestSuite{
-		programFilename: "ebpf_prog/kprobe1.elf",
+		programFilename: progPath("kprobe1.elf"),
 		programsCount:   2,
 		mapsCount:       1,
 	})

@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	xdpProgramFilename = "ebpf_prog/xdp1.elf"
+	xdpProgramFilename = "xdp1.elf"
 )
 
 type xdpTestSuite struct {
@@ -204,7 +204,7 @@ func (ts *xdpTestSuite) TestProgramInfo() {
 // Run suite
 func TestXdpSuite(t *testing.T) {
 	suite.Run(t, &xdpTestSuite{
-		programFilename: xdpProgramFilename,
+		programFilename: progPath(xdpProgramFilename),
 		programsCount:   5,
 		mapsCount:       7,
 	})

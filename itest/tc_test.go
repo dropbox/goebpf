@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	tcProgramFilename = "ebpf_prog/tc1.elf"
+	tcProgramFilename = "tc1.elf"
 )
 
 type tcTestSuite struct {
@@ -129,7 +129,7 @@ func (ts *tcTestSuite) TestProgramInfo() {
 // Run suite
 func TestTcSuite(t *testing.T) {
 	suite.Run(t, &tcTestSuite{
-		programFilename: tcProgramFilename,
+		programFilename: progPath(tcProgramFilename),
 		programsCount:   3,
 	})
 }

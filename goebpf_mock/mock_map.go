@@ -6,12 +6,13 @@ package goebpf_mock
 // eBPF maps golang mock implementation for testing purposes.
 // The idea behind is make any BPF program unit-testable right from GO
 
+// #cgo CFLAGS: -I..
 /*
 #include <stdint.h>
 #include <sys/queue.h>
 #include <stdlib.h>
 
-#include "../bpf_helpers.h"
+#include "bpf_helpers.h"
 
 #define MAX_KEY_SIZE	32
 
