@@ -732,6 +732,7 @@ func (m *EbpfMap) Delete(ikey interface{}) error {
 
 // GetNextKey looks up next key in the map.
 // returns 'next_key' on success, 'err' on failure (or last key in map - no next key available).
+// when 'nil' is passed to this method, the first key in the map is returned.
 func (m *EbpfMap) GetNextKey(ikey interface{}) ([]byte, error) {
 	// Convert key into bytes
 	key, err := KeyValueToBytes(ikey, int(m.KeySize))
@@ -739,12 +740,17 @@ func (m *EbpfMap) GetNextKey(ikey interface{}) ([]byte, error) {
 		return nil, err
 	}
 
+	var k *byte
+	if key != nil {
+		k = &key[0]
+	}
+
 	var nextKey = make([]byte, m.KeySize)
 	var logBuf [errCodeBufferSize]byte
 
 	res := int(C.ebpf_map_get_next_key(
 		C.__u32(m.fd),
-		unsafe.Pointer(&key[0]),
+		unsafe.Pointer(k),
 		unsafe.Pointer(&nextKey[0]),
 		unsafe.Pointer(&logBuf[0]),
 		C.size_t(unsafe.Sizeof(logBuf))))

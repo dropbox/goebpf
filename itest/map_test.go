@@ -459,6 +459,7 @@ func (ts *mapTestSuite) TestGetNextKeyString() {
 		"key1": "val1",
 		"key2": "val2",
 		"key3": "val3",
+		"":     "val4",
 	}
 
 	result := map[string]string{}
@@ -468,16 +469,17 @@ func (ts *mapTestSuite) TestGetNextKeyString() {
 		err = m.Insert(key, value)
 		ts.NoError(err)
 	}
-	var currentKey string
+	currentKey, err := m.GetNextKeyString(nil)
+	ts.NoError(err)
 	for {
+		val, err := m.LookupString(currentKey)
+		ts.NoError(err)
+		ts.Equal(mapData[currentKey], string(val))
+		result[currentKey] = val
 		nextKey, err := m.GetNextKeyString(currentKey)
 		if err != nil {
 			break
 		}
-		val, err := m.LookupString(nextKey)
-		ts.NoError(err)
-		ts.Equal(mapData[nextKey], string(val))
-		result[nextKey] = val
 		currentKey = nextKey
 	}
 	ts.Equal(mapData, result)
@@ -498,6 +500,7 @@ func (ts *mapTestSuite) TestGetNextKeyInt() {
 		1234: 4321,
 		5678: 8765,
 		9012: 2109,
+		0:    1234,
 	}
 
 	result := map[int]int{}
@@ -507,16 +510,17 @@ func (ts *mapTestSuite) TestGetNextKeyInt() {
 		err = m.Insert(key, value)
 		ts.NoError(err)
 	}
-	var currentKey int
+	currentKey, err := m.GetNextKeyInt(nil)
+	ts.NoError(err)
 	for {
+		val, err := m.LookupInt(currentKey)
+		ts.NoError(err)
+		ts.Equal(mapData[currentKey], int(val))
+		result[currentKey] = val
 		nextKey, err := m.GetNextKeyInt(currentKey)
 		if err != nil {
 			break
 		}
-		val, err := m.LookupInt(nextKey)
-		ts.NoError(err)
-		ts.Equal(mapData[nextKey], int(val))
-		result[nextKey] = val
 		currentKey = nextKey
 	}
 	ts.Equal(mapData, result)

@@ -103,6 +103,9 @@ static void *bpf_find_next_item_by_key(struct __create_map_def *map, const void 
 	struct bpf_map_data_head *head = (struct bpf_map_data_head*) &map->map_data;
 	struct bpf_map_item *item = NULL;
 	SLIST_FOREACH(item, head, next) {
+		if (key == NULL) {
+			return SLIST_FIRST(head);
+		}
 		if (memcmp(key, item->key, map->map_def->key_size) == 0) {
 			struct bpf_map_item *nextitem = SLIST_NEXT(item, next);
 			// if next key points to the head (first item), return NULL
@@ -558,9 +561,15 @@ func (m *MockMap) GetNextKey(ikey interface{}) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	var k *byte
+	if key != nil {
+		k = &key[0]
+	}
+
 	var nextKey = make([]byte, m.KeySize)
 	res := C.bpf_map_get_next_key(m.fd,
-		unsafe.Pointer(&key[0]),
+		unsafe.Pointer(k),
 		unsafe.Pointer(&nextKey[0]),
 	)
 

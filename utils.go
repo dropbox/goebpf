@@ -401,6 +401,8 @@ func KeyValueToBytes(ival interface{}, size int) ([]byte, error) {
 	var res = make([]byte, size)
 
 	switch val := ival.(type) {
+	case nil:
+		return nil, nil
 	case int:
 		// Flexible integer, little endian
 		remainder := uint64(val)
