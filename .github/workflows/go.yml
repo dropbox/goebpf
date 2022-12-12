@@ -1,0 +1,39 @@
+name: Go
+
+on:
+  push:
+    branches: [ "master", "main" ]
+  pull_request:
+    branches: [ "master", "main" ]
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: [ '1.x', '1.18', '1.16' ]
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Go version ${{ matrix.go-version }}
+      uses: actions/setup-go@v3
+      with:
+        go-version: ${{ matrix.go-version }}
+
+    - name: Test formatting
+      run: if gofmt -s -l . | grep -Eqx '.+'; then echo "Please fix source formatting by running 'go fmt ./...'"; exit 1; fi
+
+    - name: Build
+      run: go build -v ./...
+
+    - name: Test goebpf
+      run: go test -v -coverprofile=coverage.txt -covermode=atomic
+
+    - name: Test goebpf_mock
+      run: cd goebpf_mock && go test -v -coverprofile=coverage.txt -covermode=atomic
+
+    - name: Integration test build-only - they cannot be run in CI without root access
+      run: cd itest && make
+

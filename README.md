@@ -1,5 +1,5 @@
 # Go eBPF
-[![Build Status](https://app.travis-ci.com/dropbox/goebpf.svg?branch=master)](https://app.travis-ci.com/dropbox/goebpf)
+[![Build Status](https://github.com/dropbox/goebpf/actions/workflows/go.yml/badge.svg)](https://github.com/dropbox/goebpf/actions?query=branch%3Amaster)
 [![Go Report Card](https://goreportcard.com/badge/github.com/dropbox/goebpf)](https://goreportcard.com/report/github.com/dropbox/goebpf)
 [![Documentation](https://godoc.org/github.com/dropbox/goebpf?status.svg)](http://godoc.org/github.com/dropbox/goebpf)
 
