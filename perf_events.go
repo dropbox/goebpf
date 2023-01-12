@@ -47,8 +47,7 @@ type PerfEvents struct {
 	stopChannel    chan struct{}
 	wg             sync.WaitGroup
 
-	started      bool
-	startStopMtx sync.Mutex
+	started bool
 
 	handlers []*perfEventHandler
 }
@@ -138,9 +137,6 @@ func (pe *PerfEvents) StartForAllProcessesAndCPUs(bufferSize int) (<-chan []byte
 
 // Stop stops event polling loop
 func (pe *PerfEvents) Stop() {
-	pe.startStopMtx.Lock()
-	defer pe.startStopMtx.Unlock()
-
 	if !pe.started {
 		return
 	}
@@ -160,9 +156,6 @@ func (pe *PerfEvents) Stop() {
 }
 
 func (pe *PerfEvents) startLoop() {
-	pe.startStopMtx.Lock()
-	defer pe.startStopMtx.Unlock()
-
 	pe.stopChannel = make(chan struct{})
 	pe.updatesChannel = make(chan []byte)
 	pe.wg.Add(1)
