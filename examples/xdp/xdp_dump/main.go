@@ -37,7 +37,7 @@ func main() {
 		fatalError("-iface is required.")
 	}
 
-	fmt.Println("\nXDP dump example program\n")
+	fmt.Print("\nXDP dump example program\n\n")
 
 	// Create eBPF system / load .ELF files compiled by clang/llvm
 	bpf := goebpf.NewDefaultEbpfSystem()
