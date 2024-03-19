@@ -47,6 +47,8 @@ type PerfEvents struct {
 	stopChannel    chan struct{}
 	wg             sync.WaitGroup
 
+	started bool
+
 	handlers []*perfEventHandler
 }
 
@@ -135,6 +137,10 @@ func (pe *PerfEvents) StartForAllProcessesAndCPUs(bufferSize int) (<-chan []byte
 
 // Stop stops event polling loop
 func (pe *PerfEvents) Stop() {
+	if !pe.started {
+		return
+	}
+
 	// Stop poller firstly
 	pe.poller.Stop()
 	// Stop poll loop
@@ -154,10 +160,6 @@ func (pe *PerfEvents) startLoop() {
 	pe.updatesChannel = make(chan []byte)
 	pe.wg.Add(1)
 
-	go pe.loop()
-}
-
-func (pe *PerfEvents) loop() {
 	// Setup poller to poll all handlers (one handler per CPU)
 	pe.poller = newPerfEventPoller()
 	for _, handler := range pe.handlers {
@@ -166,6 +168,11 @@ func (pe *PerfEvents) loop() {
 
 	// Start poller
 	pollerCh := pe.poller.Start(pe.PollTimeoutMs)
+	pe.started = true
+	go pe.loop(pollerCh)
+}
+
+func (pe *PerfEvents) loop(pollerCh <-chan *perfEventHandler) {
 	defer func() {
 		pe.wg.Done()
 	}()
