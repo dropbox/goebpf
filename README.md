@@ -50,7 +50,7 @@ Consider very simple example of Read / Load / Attach
 Like it? Check our [examples](https://github.com/dropbox/goebpf/tree/master/examples/)
 
 ## Perf Events
-Currently library has support for one, most popular use case of `perf_events: where `eBPF` map key maps to `cpu_id`.
+Currently library has support for one, most popular use case of perf_events: where `eBPF` map key maps to `cpu_id`.
 So `eBPF` and `go` parts actually bind `cpu_id` to map index. It maybe as simple as:
 
 ```c
