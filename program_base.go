@@ -14,7 +14,8 @@ package goebpf
 
 // Load eBPF program into kernel
 static int ebpf_prog_load(const char *name, __u32 prog_type, const void *insns, __u32 insns_cnt,
-	const char *license, __u32 kern_version, void *log_buf, size_t log_size)
+	const char *license, __u32 kern_version, void *log_buf, size_t log_size,
+	__u32 expected_attach_type)
 {
 	union bpf_attr attr = {};
 
@@ -29,6 +30,7 @@ static int ebpf_prog_load(const char *name, __u32 prog_type, const void *insns, 
 	attr.log_size = 0;
 	attr.log_level = 0;
 	attr.kern_version = kern_version;
+	attr.expected_attach_type = expected_attach_type;
 	// program name
 	strncpy((char*)&attr.prog_name, name, BPF_OBJ_NAME_LEN - 1);
 
@@ -76,6 +78,69 @@ const (
 	ProgramTypeSockOps
 )
 
+// AttachType is eBPF program attach type
+type AttachType int
+
+// Must be in sync with enum bpf_attach_type from <linux/bpf.h>
+const (
+	AttachTypeCgroupInetIngress AttachType = iota
+	AttachTypeCgroupInetEgress
+	AttachTypeCgroupInetSockCreate
+	AttachTypeCgroupSockOps
+	AttachTypeSkSkbStreamParser
+	AttachTypeSkSkbStreamVerdict
+	AttachTypeCgroupDevice
+	AttachTypeSkMsgVerdict
+	AttachTypeCgroupInet4Bind
+	AttachTypeCgroupInet6Bind
+	AttachTypeCgroupInet4Connect
+	AttachTypeCgroupInet6Connect
+	AttachTypeCgroupInet4PostBind
+	AttachTypeCgroupInet6PostBind
+	AttachTypeCgroupUdp4Sendmsg
+	AttachTypeCgroupUdp6Sendmsg
+	AttachTypeLircMode2
+	AttachTypeFlowDissector
+	AttachTypeCgroupSysctl
+	AttachTypeCgroupUdp4Recvmsg
+	AttachTypeCgroupUdp6Recvmsg
+	AttachTypeCgroupGetsockopt
+	AttachTypeCgroupSetsockopt
+	AttachTypeTraceRawTp
+	AttachTypeTraceFentry
+	AttachTypeTraceFexit
+	AttachTypeModifyReturn
+	AttachTypeLsmMac
+	AttachTypeTraceIter
+	AttachTypeCgroupInet4Getpeername
+	AttachTypeCgroupInet6Getpeername
+	AttachTypeCgroupInet4Getsockname
+	AttachTypeCgroupInet6Getsockname
+	AttachTypeXdpDevmap
+	AttachTypeCgroupInetSockRelease
+	AttachTypeXdpCpumap
+	AttachTypeSkLookup
+	AttachTypeXdp
+	AttachTypeSkSkbVerdict
+	AttachTypeSkReuseportSelect
+	AttachTypeSkReuseportSelectOrMigrate
+	AttachTypePerfEvent
+	AttachTypeTraceKprobeMulti
+	AttachTypeLsmCgroup
+	AttachTypeStructOps
+	AttachTypeNetfilter
+	AttachTypeTcxIngress
+	AttachTypeTcxEgress
+	AttachTypeTraceUprobeMulti
+	AttachTypeCgroupUnixConnect
+	AttachTypeCgroupUnixSendmsg
+	AttachTypeCgroupUnixRecvmsg
+	AttachTypeCgroupUnixGetpeername
+	AttachTypeCgroupUnixGetsockname
+	AttachTypeNetkitPrimary
+	AttachTypeNetkitPeer
+)
+
 func (t ProgramType) String() string {
 	switch t {
 	case ProgramTypeSocketFilter:
@@ -118,6 +183,7 @@ type BaseProgram struct {
 	license       string // License
 	bytecode      []byte // eBPF instructions (each instruction - 8 bytes)
 	kernelVersion int    // Kernel requires version to match running for "kprobe" programs
+	attachType    AttachType
 }
 
 // Load loads program into linux kernel
@@ -144,8 +210,22 @@ func (prog *BaseProgram) Load() error {
 		license,
 		C.__u32(prog.kernelVersion),
 		unsafe.Pointer(&logBuf[0]),
-		C.size_t(unsafe.Sizeof(logBuf))))
+		C.size_t(unsafe.Sizeof(logBuf)),
+		C.__u32(prog.attachType)))
 
+	if res == -1 && int(prog.attachType) != 0 {
+		/* retry with expected_attach_type=0 in case kernel doesn't support it */
+		res = int(C.ebpf_prog_load(
+			name,
+			C.__u32(prog.GetType()),
+			unsafe.Pointer(&prog.bytecode[0]),
+			C.__u32(prog.GetSize())/bpfInstructionLen,
+			license,
+			C.__u32(prog.kernelVersion),
+			unsafe.Pointer(&logBuf[0]),
+			C.size_t(unsafe.Sizeof(logBuf)),
+			C.__u32(0)))
+	}
 	if res == -1 {
 		return fmt.Errorf("ebpf_prog_load() failed: %s",
 			NullTerminatedStringToString(logBuf[:]))
@@ -204,4 +284,9 @@ func (prog *BaseProgram) GetSize() int {
 // GetLicense returns program's license
 func (prog *BaseProgram) GetLicense() string {
 	return prog.license
+}
+
+// GetAttachType returns program's expected attach type
+func (prog *BaseProgram) GetExpectedAttachType() AttachType {
+	return prog.attachType
 }

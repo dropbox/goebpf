@@ -49,6 +49,8 @@ type Program interface {
 	GetLicense() string
 	// Returns program type
 	GetType() ProgramType
+	// Returns expected attach type
+	GetExpectedAttachType() AttachType
 }
 
 // Map defines interface to interact with eBPF maps
