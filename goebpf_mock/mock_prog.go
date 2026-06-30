@@ -9,13 +9,14 @@ import (
 
 // MockProgram is mock implementation for eBPF program
 type MockProgram struct {
-	Attached bool
-	Fd       int
-	License  string
-	Name     string
-	Section  string
-	Size     int
-	ProgType goebpf.ProgramType
+	Attached   bool
+	Fd         int
+	License    string
+	Name       string
+	Section    string
+	Size       int
+	ProgType   goebpf.ProgramType
+	AttachType goebpf.AttachType
 }
 
 // NewMockProgram creates new mock program of tp type.
@@ -83,4 +84,9 @@ func (m *MockProgram) GetSection() string {
 // GetSize returns program size set by user
 func (m *MockProgram) GetSize() int {
 	return m.Size
+}
+
+// GetExpectedAttachType returns attachment type
+func (m *MockProgram) GetExpectedAttachType() goebpf.AttachType {
+	return m.AttachType
 }
