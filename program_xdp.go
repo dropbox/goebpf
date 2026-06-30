@@ -79,6 +79,7 @@ type xdpProgram struct {
 
 func newXdpProgram(bp BaseProgram) Program {
 	bp.programType = ProgramTypeXdp
+	bp.attachType = AttachTypeXdp
 	return &xdpProgram{
 		BaseProgram: bp,
 	}
